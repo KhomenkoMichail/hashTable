@@ -1,26 +1,18 @@
 #ifndef STRUCTS_AND_CONSTS_H
 #define STRUCTS_AND_CONSTS_H
 
+#include <stdint.h>
+
 const int POISON = 0xBAD;
 const int NULL_CANARY = 0xBABE;
+const int MAX_WORD_LENGTH = 32;
 
 typedef uint64_t (*hashFunc_t)(const char* str);
 
-struct hashTable_t {
-    struct list_t** listArr;
-
-    size_t sizeOfArr;
-
-    uint64_t tableSize;
-    double loadFactor;
-
-    hashFunc_t hashFunc;
-
-    int errorCode;
-};
 
 struct tableElem_t {
-    const char* word;
+    char* word;
+    size_t wordLen;
     size_t repCounter;
 };
 
@@ -46,7 +38,7 @@ struct listFiles {
 };
 
 struct list_t {
-    struct node_t* nodeArr;
+    node_t* nodeArr;
     size_t free;
 
     size_t capacity;
@@ -55,22 +47,27 @@ struct list_t {
     int isLinear;
 
     int errorCode;
-    struct info_t creationInfo;
+    info_t creationInfo;
 };
 
 const size_t MAX_CAPACITY = 5000;
 
 enum hashTableErr_t {
-    htNO_ERRORS            = 0x00,
-    htBAD_CTOR_CALLOC      = -0x00,
+    htNO_ERRORS            =  0x00,
+    htBAD_CTOR_CALLOC      = -0x10000,
+    htLIST_ERROR           = -0x20000,
+    htNULL_LST_ARR         = -0x40000,
+    htNULL_LST_PTR         = -0x80000,
+    htWRONG_LOAD_FACTOR    = -0x100000,
+    htNULL_FUNC            = -0x200000,
+    htBAD_NEW_ELEM_CALLOC  = -0x400000
+};
 
-
-
-
-}
+const int ERROR_FILLING_HT  = 0xBADBAD;
+const int CAN_NOT_FIND_WORD = -0xEDA;
 
 enum listErr_t {
-    lstNO_ERRORS                = 0x00,
+    lstNO_ERRORS                =  0x00,
     lstBAD_LIST_PTR             = -0x01,
     lstBAD_NODE_ARR_PTR         = -0x02,
     lstBAD_CAPACITY             = -0x04,
@@ -101,5 +98,19 @@ struct dump_t {
     int dumpFileWasOpened;
 };
 
+struct hashTable_t {
+    list_t** listArr;
+
+    size_t sizeOfArr;
+
+    uint64_t tableSize;
+    double loadFactor;
+
+    hashFunc_t hashFunc;
+
+    int errorCode;
+    dump_t* dump;
+    info_t* creationInfo;
+};
 
 #endif

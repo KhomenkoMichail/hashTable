@@ -52,7 +52,7 @@ size_t* listNodeRepCounter (list_t* lst, size_t numOfNode) {
     return &(((lst->nodeArr)[numOfNode]).data.repCounter);
 }
 
-const char** listNodeWord (list_t* lst, size_t numOfNode) {
+char** listNodeWord (list_t* lst, size_t numOfNode) {
     assert(lst);
 
     if (numOfNode > lst->capacity) {
@@ -61,6 +61,17 @@ const char** listNodeWord (list_t* lst, size_t numOfNode) {
     }
 
     return &(((lst->nodeArr)[numOfNode]).data.word);
+}
+
+size_t* listNodeWordLen (list_t* lst, size_t numOfNode) {
+    assert(lst);
+
+    if (numOfNode > lst->capacity) {
+        printf("Error! request for too big numberOfNode in func %s\n", __func__);
+        return NULL;
+    }
+
+    return &(((lst->nodeArr)[numOfNode]).data.wordLen);
 }
 
 size_t* listSize (list_t* lst) {
@@ -103,12 +114,17 @@ int* hashTableErrorCode (hashTable_t* hashTable) {
     return &(hashTable->errorCode);
 }
 
-int* hashTableErrorCode (hashTable_t* hashTable) {
-    assert(hashTable);
-    return &(hashTable->errorCode);
-}
-
 hashFunc_t* hashTableFunc (hashTable_t* hashTable) {
     assert(hashTable);
     return &(hashTable->hashFunc);
+}
+
+dump_t** hashTableDumpStruct (hashTable_t* hashTable) {
+    assert(hashTable);
+    return &(hashTable->dump);
+}
+
+info_t** hashTableInfoStruct (hashTable_t* hashTable) {
+    assert(hashTable);
+    return &(hashTable->creationInfo);
 }

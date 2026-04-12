@@ -1,19 +1,25 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "../include/structsAndConsts.h"
 #include "../include/structAccessFunctions.h"
+#include "../include/helpingFunctions.h"
 #include "../include/listFunctions.h"
 #include "../include/hashTableFunctions.h"
 
 
-int hashTableCtor (struct hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t hashFunc) {
+int hashTableCtor (hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t hashFunc,
+                   info_t* creationInfo, dump_t* htDump) {
     assert(hashTable);
     assert(hashFunc);
+    assert(htDump);
+    assert(creationInfo);
 
-    hashTableList(hashTable, 0)     = (struct list_t**)calloc(sizeOfArr, sizeof(struct list_t*));
+    hashTable->listArr     = (list_t**)calloc(sizeOfArr, sizeof(list_t*));
 
-    if (!hashTableList(hashTable, 0)) {
+    if (!hashTable->listArr) {
         printf("ERROR! Bad hashTableCtor calloc!\n");
         *hashTableErrorCode(hashTable) = htBAD_CTOR_CALLOC;
         return htBAD_CTOR_CALLOC;
@@ -25,7 +31,7 @@ int hashTableCtor (struct hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t h
 
     *hashTableFunc(hashTable)       = hashFunc;
 
-    *hashTableErrorCode             = 0;
+    *hashTableErrorCode(hashTable)  = 0;
 
     for (size_t numOfList = 0; numOfList < sizeOfArr; numOfList++) {
         *hashTableList(hashTable, numOfList) = (list_t*)calloc(1, sizeof(list_t));
@@ -37,23 +43,306 @@ int hashTableCtor (struct hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t h
             return htBAD_CTOR_CALLOC;
         }
 
-        struct info_t listInfo= {};
-        if (LIST_CTOR(**hashTableList(hashTable, numOfList), 1, listInfo) != lstNO_ERRORS) {
+        info_t listInfo= {};
+        if (listCtor(*hashTableList(hashTable, numOfList), 4, listInfo) != lstNO_ERRORS) {
             hashTableDtor(hashTable, numOfList);
             return lstBAD_CTOR_CALLOC;
         }
     }
 
+    *hashTableDumpStruct(hashTable) = htDump;
+    *hashTableInfoStruct(hashTable) = creationInfo;
+
     return htNO_ERRORS;
 }
 
-void hashTableDtor(struct hashTable_t* hashTable, size_t numOfLists) {
+void hashTableDtor (hashTable_t* hashTable, size_t numOfLists) {
     assert(hashTable);
 
-    for (int curList = 0; curList < numOfLists; curList++)
+    for (size_t curList = 0; curList < numOfLists; curList++)
         listDtor(*hashTableList(hashTable, curList));
 
-    free(hashTableList(hashTable, 0));
+    free(hashTable->listArr);
+    hashTable->listArr = NULL;
 }
+
+int hashTableVerifier (hashTable_t* hashTable) {
+    assert(hashTable);
+
+    if (!hashTable->listArr) {
+        *hashTableErrorCode(hashTable) |= -htNULL_LST_ARR;
+        return *hashTableErrorCode(hashTable);
+    }
+
+    for (size_t curList = 0; curList < *hashTableArrSize(hashTable); curList++) {
+        if (!(*hashTableList(hashTable, curList))) {
+            *hashTableErrorCode(hashTable) |= -htNULL_LST_PTR;
+            return *hashTableErrorCode(hashTable);
+        }
+
+        *hashTableErrorCode(hashTable) |= listVerifier(*hashTableList(hashTable, curList));
+
+        if (*hashTableErrorCode(hashTable) != lstNO_ERRORS) {
+            *hashTableErrorCode(hashTable) |= -htLIST_ERROR;
+            return *hashTableErrorCode(hashTable);
+        }
+    }
+
+    double curLoadFactor = (double)*hashTableSize(hashTable) / (double)*hashTableArrSize(hashTable);
+
+    if (!compareDouble(curLoadFactor, *hashTableLoadFactor(hashTable)))
+        *hashTableErrorCode(hashTable) |= -htWRONG_LOAD_FACTOR;
+
+    if (!(*hashTableFunc(hashTable)))
+        *hashTableErrorCode(hashTable) |= -htNULL_FUNC;
+
+    return *hashTableErrorCode(hashTable);
+}
+
+void hashTableDump (hashTable_t* hashTable, const char* message) {
+    assert(hashTable);
+    assert(message);
+
+    dump_t** dumpPtr = hashTableDumpStruct(hashTable);
+    assert(dumpPtr && "Access function returned NULL pointer to pointer");
+
+    dump_t* htDump = *dumpPtr;
+    assert(htDump && "Pointer to dump_t is NULL! Ctor didn't set it!");
+
+    //dump_t* htDump = *hashTableDumpStruct(hashTable);
+    const char* nameOfTextGraphFile = htDump->nameOfGraphFile;
+
+    FILE* dumpFile = 0;
+    if (htDump->dumpFileWasOpened)
+        dumpFile = fopen(htDump->nameOfDumpFile, "a");
+    else {
+        dumpFile = fopen(htDump->nameOfDumpFile, "w");
+        (*hashTableDumpStruct(hashTable))->dumpFileWasOpened = 1;
+    }
+
+    if (dumpFile == NULL) {
+        fprintf(stderr, "Error of opening file \"%s\"", htDump->nameOfFile);
+        perror("");
+        return;
+    }
+
+    fprintf(dumpFile, "<pre>\n");
+    fprintf(dumpFile, "<h2>hashTableDump() <font color=red>from %s at %s:%d</font></h2>\n",
+    htDump->nameOfFunc, htDump->nameOfFile, htDump->numOfLine);
+
+    fprintf(dumpFile, "<h2><font color=blue>%s</font></h2>\n", message);
+
+    info_t* htInfo = *hashTableInfoStruct(hashTable);
+    fprintf(dumpFile, "hashTable \"%s\" [%p] from %s at %s:%d\n\n",
+    htInfo->name, hashTable, htInfo->nameOfFunc, htInfo->nameOfFile, htInfo->numOfLine);
+
+    fprintfHashTableDataForDump(hashTable, dumpFile);
+    fprintfHashTableErrorsForDump(hashTable, dumpFile);
+
+    fprintf(dumpFile, "<h2><font color=orange>GRAPH OF THE HASH TABLE:</font></h2>\n");
+    createHtGraphImageForDump(hashTable, dumpFile, nameOfTextGraphFile);
+
+    if (fclose(dumpFile) != 0) {
+        fprintf(stderr, "Error of closing file \"%s\"", htDump->nameOfGraphFile);
+        perror("");
+        return;
+    }
+}
+
+void fprintfHashTableErrorsForDump (hashTable_t* hashTable, FILE* dumpFile) {
+    assert(hashTable);
+    assert(dumpFile);
+
+    dump_t htDump = **hashTableDumpStruct(hashTable);
+
+    if (*hashTableErrorCode(hashTable) & -htWRONG_LOAD_FACTOR) {
+        fprintf(dumpFile, "<h2><font color=red>ERROR! WRONG LOAD FACTOR! errorcode = %d; In func %s from %s:%d</font></h2>\n",
+        htWRONG_LOAD_FACTOR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+        printf("ERROR! WRONG LOAD FACTOR! errorcode = %d; In func %s from %s:%d\n",
+        htWRONG_LOAD_FACTOR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+    }
+
+    if (*hashTableErrorCode(hashTable) & -htNULL_FUNC) {
+        fprintf(dumpFile, "<h2><font color=red>ERROR! NULL HASH FUNC! errorcode = %d; In func %s from %s:%d</font></h2>\n",
+        htNULL_FUNC, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+        printf("ERROR! NULL HASH FUNC! errorcode = %d; In func %s from %s:%d\n",
+        htNULL_FUNC, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+    }
+
+    if (*hashTableErrorCode(hashTable) & -htNULL_LST_ARR) {
+        fprintf(dumpFile, "<h2><font color=red>ERROR! NULL HASH FUNC! errorcode = %d; In func %s from %s:%d</font></h2>\n",
+        htNULL_LST_ARR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+        printf("ERROR! NULL HASH FUNC! errorcode = %d; In func %s from %s:%d\n",
+        htNULL_LST_ARR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+    }
+
+    if (*hashTableErrorCode(hashTable) & -htNULL_LST_PTR) {
+        fprintf(dumpFile, "<h2><font color=red>ERROR! NULL LIST POINTER! errorcode = %d; In func %s from %s:%d</font></h2>\n",
+        htNULL_LST_PTR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+        printf("ERROR! NULL LIST POINTER! errorcode = %d; In func %s from %s:%d\n",
+        htNULL_LST_PTR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+    }
+
+    if (*hashTableErrorCode(hashTable) & -htLIST_ERROR) {
+        fprintf(dumpFile, "<h2><font color=red>ERROR! SOME LISTS HAVE ERRORS! errorcode = %d; In func %s from %s:%d</font></h2>\n",
+        htLIST_ERROR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+        printf("ERROR! SOME LISTS HAVE ERRORS! errorcode = %d; In func %s from %s:%d\n",
+        htLIST_ERROR, htDump.nameOfFunc, htDump.nameOfFile, htDump.numOfLine);
+    }
+
+    for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable); curListNum++) {
+        list_t* curList = *hashTableList(hashTable, curListNum);
+
+        fprintf(dumpFile,"-------------------------------------------------------------------\n");
+        fprintf(dumpFile, "<h1><font color=blue>List #%llu [%p] </font></h1>\n", curListNum, curList);
+
+        if (!curList) {
+            fprintf(dumpFile, "<font color=red>NULL POINTER!</font></h2>\n");
+            continue;
+        }
+
+        if (!fprintfListErrorsForDump (curList, dumpFile, *hashTableDumpStruct(hashTable)))
+            fprintf(dumpFile, "<font color=green>NO ERRORS</font></h2>\n");
+
+        if(!(curList->errorCode & -lstBAD_CAPACITY)) {
+            fprintfListDataForDump (curList, dumpFile);
+            createLstGraphImageForDump (curList, dumpFile, (*hashTableDumpStruct(hashTable))->nameOfGraphFile);
+        }
+    }
+}
+
+void fprintfHashTableDataForDump (hashTable_t* hashTable, FILE* dumpFile) {
+    assert(hashTable);
+    assert(dumpFile);
+
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">sizeOfArr = %llu</font></h4>\n", *hashTableArrSize(hashTable));
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">tableSize = %llu</font></h4>\n", *hashTableSize(hashTable));
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">loadFactor = %lf</font></h4>\n", *hashTableLoadFactor(hashTable));
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">errorCode = %X</font></h4>\n", *hashTableErrorCode(hashTable));
+}
+
+
+void createHtGraphImageForDump (hashTable_t* hashTable, FILE* dumpFile,
+                                const char* nameOfTextGraphFile) {
+    assert(hashTable);
+    assert(dumpFile);
+    assert(nameOfTextGraphFile);
+
+    static int hashTableGraphImageCounter = 0;
+    hashTableGraphImageCounter++;
+
+    fprintfHtGraphDump(hashTable, nameOfTextGraphFile);
+
+    char graphvizCallCommand[STR_SIZE] = {};
+    snprintf(graphvizCallCommand, sizeof(graphvizCallCommand), "dot -Tpng %s -o graphDumps/HTgraph%d.png", nameOfTextGraphFile, hashTableGraphImageCounter);
+    system(graphvizCallCommand);
+    fprintf(dumpFile, "Image:\n <img src=graphDumps/HTgraph%d.png width=%lldpx>\n", hashTableGraphImageCounter, *hashTableArrSize(hashTable) * 150);
+}
+
+void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile) {
+    assert(hashTable);
+    assert(nameOfTextGraphFile);
+
+    FILE* graphFile = fopen(nameOfTextGraphFile, "w");
+
+    if (graphFile == NULL) {
+        fprintf(stderr, "Error of opening file \"%s\"", nameOfTextGraphFile);
+        perror("");
+        return;
+    }
+
+
+    fprintf(graphFile, "digraph List {\n");
+    fprintf(graphFile, "    rankdir = BT;\n");
+    fprintf(graphFile, "    node [shape = Mrecord, color = black];\n");
+
+    for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable); curListNum++) {
+        list_t* curList = *hashTableList(hashTable, curListNum);
+
+        fprintf(graphFile, "    list%llu [label = \" idx = %llu | listSize = %llu \", shape = box, style = filled, fillcolor = \"#8599f5\", color = black];\n",
+                curListNum, curListNum, *listSize(curList));
+
+        fprintfCurrentListGraph(curList, curListNum, graphFile, 1);
+        fprintf(graphFile, "    list%llu -> node0_%llu [weight = 1000, color = \"#7eef6f\"];\n", curListNum, curListNum);
+    }
+
+    for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable) - 1; curListNum++)
+        fprintf(graphFile, "    list%llu -> list%llu [weight = 1000, color = \"#000000\"];\n", curListNum, curListNum + 1);
+
+    fprintf(graphFile, "    { rank = same; ");
+    for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable); curListNum++)
+        fprintf(graphFile, "list%llu; ", curListNum);
+
+    fprintf(graphFile, " }\n}\n");
+
+    if (fclose(graphFile) != 0) {
+        fprintf(stderr, "Error of closing file \"%s\"", nameOfTextGraphFile);
+        perror("");
+        return;
+    }
+}
+
+
+int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
+    assert(hashTable);
+    assert(nameOfInputFile);
+
+    //hashTableDump(hashTable, "MY DUMP BEFORE");
+
+    if (hashTableVerifier(hashTable) != htNO_ERRORS)
+        hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+
+    char* bufPos = copyFileContent(nameOfInputFile);
+
+    if (!bufPos)
+        return ERROR_FILLING_HT;
+
+    hashFunc_t hashFunction = *hashTableFunc(hashTable);
+
+    int wordLen = 0;
+
+    while (*bufPos != '\0') {
+        skipSpaces(&bufPos);
+
+        char wordBuf[MAX_WORD_LENGTH] = {};
+        sscanf(bufPos, "%s%n", wordBuf, &wordLen);
+        bufPos += wordLen;
+
+        if (wordLen == MAX_WORD_LENGTH) wordBuf[MAX_WORD_LENGTH - 1] = '\0';
+
+        uint64_t wordHash = hashFunction(wordBuf);
+        size_t index = wordHash % *hashTableArrSize(hashTable);
+        list_t* curList = *hashTableList(hashTable, index);
+
+        int wordNodeNum = findWordInList(curList, wordBuf, wordLen);
+
+        if (wordNodeNum == CAN_NOT_FIND_WORD) {
+            char* wordPtr = (char*)malloc(wordLen + 1);
+            memcpy(wordPtr, wordBuf, wordLen + 1);
+
+            if (insertAfter(curList, (size_t)*listTail(curList), wordPtr, wordLen,
+                        *hashTableDumpStruct(hashTable)) < 0) {
+                printf("Error insert of the word \"%s\"!\n", wordPtr);
+                free(wordPtr);
+                break;
+            }
+        }
+        else *listNodeRepCounter(curList, wordNodeNum) += 1;
+
+        *hashTableSize(hashTable) += 1;
+
+        skipSpaces(&bufPos);
+    }
+
+    *hashTableLoadFactor(hashTable) = (double)*hashTableSize(hashTable) / (double)*hashTableArrSize(hashTable);
+
+    if (hashTableVerifier(hashTable) != htNO_ERRORS)
+        hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+
+    //hashTableDump(hashTable, "MY DUMP AFTER");
+
+    return 0;
+}
+
 
 

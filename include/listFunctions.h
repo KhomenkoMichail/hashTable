@@ -1,103 +1,54 @@
 #ifndef LIST_FUNCTIONS_H
 #define LIST_FUNCTIONS_H
 
-#define LIST_CTOR(listName, capacity, listInfo) ({\
-    (listInfo).name = #listName;\
-    (listInfo).nameOfFile = __FILE__;\
-    (listInfo).nameOfFunc = __func__;\
-    (listInfo).numOfLine = __LINE__;\
-    int returnableValue = listCtor(&(listName), capacity, listInfo);\
-    returnableValue;\
-})
+int listCtor (list_t* lst, ssize_t capacity, info_t listInfo);
 
-#define InsertAfter(listAddress, anchorElemNum, dataValue, dumpInfoAddress) ({\
-    (dumpInfoAddress)->nameOfFile = __FILE__;\
-    (dumpInfoAddress)->numOfLine = __LINE__;\
-    int returnableValue = insertAfter(listAddress, anchorElemNum, dataValue, dumpInfoAddress);\
-    returnableValue;\
-})
+int deleteElement (list_t* lst, size_t deletedElement, dump_t* lstDump);
 
-#define InsertBefore(listAddress, anchorElemNum, dataValue, dumpInfoAddress) ({\
-    (dumpInfoAddress)->nameOfFile = __FILE__;\
-    (dumpInfoAddress)->numOfLine = __LINE__;\
-    int returnableValue = insertBefore(listAddress, anchorElemNum, dataValue, dumpInfoAddress);\
-    returnableValue;\
-})
+listErr_t reallocListUP (list_t* lst);
 
-#define InsertBeforeHead(listAddress, dataValue, dumpInfoAddress) ({\
-    (dumpInfoAddress)->nameOfFile = __FILE__;\
-    (dumpInfoAddress)->numOfLine = __LINE__;\
-    int head = *(listHead(listAddress));\
-    int returnableValue = insertBefore(listAddress, head, dataValue, dumpInfoAddress);\
-    returnableValue;\
-})
+int fprintfLstGraphDump (list_t* lst, const char* textGraphFileName);
 
-#define InsertAfterTail(listAddress, dataValue, dumpInfoAddress) ({\
-    (dumpInfoAddress)->nameOfFile = __FILE__;\
-    (dumpInfoAddress)->numOfLine = __LINE__;\
-    int tail = *(listTail(listAddress));\
-    int returnableValue = insertAfter(listAddress, tail, dataValue, dumpInfoAddress);\
-    returnableValue;\
-})
+int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int isBT);
 
-#define DeleteElement(listAddress, deletedElement, dumpInfoAddress) ({\
-    (dumpInfoAddress)->nameOfFile = __FILE__;\
-    (dumpInfoAddress)->numOfLine = __LINE__;\
-    int returnableValue = deleteElement(listAddress, deletedElement, dumpInfoAddress);\
-    returnableValue;\
-})
+void listDump (list_t* lst, dump_t* lstDump, const char* message);
 
-#define MakeListLinear(listAddress, dumpInfoAddress) ({\
-    (dumpInfoAddress)->nameOfFile = __FILE__;\
-    (dumpInfoAddress)->numOfLine = __LINE__;\
-    int returnableValue = makeListLinear(listAddress, dumpInfoAddress);\
-    returnableValue;\
-})
+void fprintfListDataForDump (list_t* lst, FILE* dumpFile);
 
-int listCtor (struct list_t* lst, ssize_t capacity, struct info_t listInfo);
+void createLstGraphImageForDump (list_t* lst, FILE* dumpFile, const char* nameOfTextGraphFile);
 
-listErr_t reallocListUP (struct list_t* lst);
+int listVerifier (list_t* lst);
 
-int fprintfGraphDump (struct list_t* lst, const char* textGraphFileName);
+int findBadFreeListNode (list_t* lst);
 
-int listVerifier (struct list_t* lst);
+int findBadNextAndPrevMatch (list_t* lst);
 
-void listDump (struct list_t* lst, struct dump_t* dumpInfo, const char* message);
+int fprintfListErrorsForDump (list_t* lst, FILE* dumpFile, dump_t* lstDump);
 
-void fprintfListDataForDump (struct list_t* lst, FILE* dumpFile);
+int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
+                 dump_t* lstDump);
 
-void createGraphImageForDump (struct list_t* lst, FILE* dumpFile, const char* nameOfTextGraphFile);
+listErr_t findBadNodeCycle (list_t* lst);
 
-int findBadFreeNode (struct list_t* lst);
+listErr_t findBadAnchorElemNum (list_t* lst, size_t anchorElemNum, dump_t* lstDump);
 
-int findBadNextAndPrevMatch (struct list_t* lst);
+listErr_t findBadDeleteNum(list_t* lst, size_t deletedElement, dump_t* lstDump);
 
-void fprintfListErrorsForDump (struct list_t* lst, FILE* dumpFile, struct dump_t* dumpInfo);
+int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
+                  dump_t* lstDump);
 
-int insertAfter (struct list_t* lst, size_t anchorElemNum, listData_t dataValue, struct dump_t* dumpInfo);
+listErr_t findFreeListCycle (list_t* lst);
 
-int insertBefore (struct list_t* lst, size_t anchorElemNum, listData_t dataValue, struct dump_t* dumpInfo);
+void listDtor (list_t* lst);
 
-int deleteElement (struct list_t* lst, size_t deletedElement, struct dump_t* dumpInfo);
+int linearOrderNodeComparator(const void* firstStruct, const void* secondStruct);
 
-listErr_t findBadNodeCycle (struct list_t* lst);
+int makeListLinear (list_t* lst, dump_t* lstDump);
 
-listErr_t findBadAnchorElemNum (struct list_t* lst, size_t anchorElemNum, struct dump_t* dumpInfo);
+listErr_t reallocListDown (list_t* lst);
 
-listErr_t findBadDeleteNum (struct list_t* lst, size_t deletedElement, struct dump_t* dumpInfo);
+int findNonlinearList(list_t* lst);
 
-listErr_t findFreeListCycle (struct list_t* lst);
-
-void userListPrintf (struct list_t* lst);
-
-void listDtor (struct list_t* lst);
-
-int linearOrderNodeComparator (const void* firstStruct, const void* secondStruct);
-
-int makeListLinear (struct list_t* lst, struct dump_t* dumpInfo);
-
-listErr_t reallocListDown (struct list_t* lst);
-
-int findNonlinearList(struct list_t* lst);
+int findWordInList(list_t* lst, const char* searchWord, size_t wordLen);
 
 #endif
