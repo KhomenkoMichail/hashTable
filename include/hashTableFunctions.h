@@ -31,4 +31,6 @@ void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile
 
 int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile);
 
+void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile);
+
 #endif

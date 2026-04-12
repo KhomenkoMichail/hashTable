@@ -87,6 +87,7 @@ enum listErr_t {
 };
 
 const size_t STR_SIZE = 64;
+const double MAX_BAR_HEIGHT_PX = 200.0;
 
 struct dump_t {
     const char* nameOfFile;

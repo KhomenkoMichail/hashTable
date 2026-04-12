@@ -109,7 +109,6 @@ void hashTableDump (hashTable_t* hashTable, const char* message) {
     dump_t* htDump = *dumpPtr;
     assert(htDump && "Pointer to dump_t is NULL! Ctor didn't set it!");
 
-    //dump_t* htDump = *hashTableDumpStruct(hashTable);
     const char* nameOfTextGraphFile = htDump->nameOfGraphFile;
 
     FILE* dumpFile = 0;
@@ -141,6 +140,7 @@ void hashTableDump (hashTable_t* hashTable, const char* message) {
 
     fprintf(dumpFile, "<h2><font color=orange>GRAPH OF THE HASH TABLE:</font></h2>\n");
     createHtGraphImageForDump(hashTable, dumpFile, nameOfTextGraphFile);
+    fprintfHashTableHistogram(hashTable, dumpFile);
 
     if (fclose(dumpFile) != 0) {
         fprintf(stderr, "Error of closing file \"%s\"", htDump->nameOfGraphFile);
@@ -344,5 +344,52 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
     return 0;
 }
 
+void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {
+    assert(hashTable);
+    assert(outputFile);
+
+    size_t arrSize = *hashTableArrSize(hashTable);
+    size_t maxListSize = 0;
+    for (size_t i = 0; i < arrSize; i++) {
+        size_t s = *listSize(*hashTableList(hashTable, i));
+        if (s > maxListSize) maxListSize = s;
+    }
+    if (maxListSize == 0) maxListSize = 1;
+
+    fprintf(outputFile, "\n<style>\n");
+    fprintf(outputFile, "    .v-chart-container { display: flex; align-items: flex-end; gap: 2px; \n");
+    fprintf(outputFile, "                         background: #f8f9fa; padding: 20px; border: 1px solid #ccc; \n");
+    fprintf(outputFile, "                         height: %dpx; overflow-x: auto; border-radius: 8px; }\n", (int)MAX_BAR_HEIGHT_PX + 60);
+    fprintf(outputFile, "    .v-chart-column { display: flex; flex-direction: column; align-items: center; min-width: 20px; }\n");
+    fprintf(outputFile, "    .v-chart-bar { background-color: #8599f5; border: 1px solid #5a75eb; width: 15px; \n");
+    fprintf(outputFile, "                   border-radius: 3px 3px 0 0; }\n");
+    fprintf(outputFile, "    .v-chart-value { font-size: 10px; color: #555; margin-bottom: 5px; font-family: monospace; }\n");
+    fprintf(outputFile, "    .v-chart-label { font-size: 10px; color: #333; margin-top: 5px; \n");
+    fprintf(outputFile, "                     white-space: nowrap; font-family: monospace; }\n");
+    fprintf(outputFile, "</style>\n\n");
+
+    fprintf(outputFile, "<h2>Hash collision histogram of the \"%s\" hashTable</h2>\n",
+                        (*hashTableInfoStruct(hashTable))->name);
+    fprintf(outputFile, "<div class=\"v-chart-container\">\n");
+
+    for (size_t i = 0; i < arrSize; i++) {
+        size_t curSize = *listSize(*hashTableList(hashTable, i));
+        double barHeight = ((double)curSize / (double)maxListSize) * MAX_BAR_HEIGHT_PX;
+
+        fprintf(outputFile, "    <div class=\"v-chart-column\">\n");
+        fprintf(outputFile, "        <div class=\"v-chart-value\">%llu</div>\n", curSize);
+
+        if (curSize == 0) {
+            fprintf(outputFile, "        <div class=\"v-chart-bar\" style=\"height: 2px; background: #e0e0e0; border: none;\"></div>\n");
+        } else {
+            fprintf(outputFile, "        <div class=\"v-chart-bar\" style=\"height: %dpx;\"></div>\n", (int)barHeight);
+        }
+
+        fprintf(outputFile, "        <div class=\"v-chart-label\"> %llu</div>\n", i);
+        fprintf(outputFile, "    </div>\n");
+    }
+
+    fprintf(outputFile, "</div>\n<br><br><br>\n");
+}
 
 
