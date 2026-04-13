@@ -27,7 +27,7 @@ int hashTableCtor (hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t hashFunc
     }
 
     *hashTableArrSize(hashTable)    = sizeOfArr;
-    *hashTableSize(hashTable)       = 0;
+    *hashTableNumOfWords(hashtable) = 0;
     *hashTableLoadFactor(hashTable) = 0.0;
 
     *hashTableFunc(hashTable)       = hashFunc;
@@ -89,7 +89,7 @@ int hashTableVerifier (hashTable_t* hashTable) {
         }
     }
 
-    double curLoadFactor = (double)*hashTableSize(hashTable) / (double)*hashTableArrSize(hashTable);
+    double curLoadFactor = (double)*hashTableNumOfWords(hashtable) / (double)*hashTableArrSize(hashTable);
 
     if (!compareDouble(curLoadFactor, *hashTableLoadFactor(hashTable)))
         *hashTableErrorCode(hashTable) |= -htWRONG_LOAD_FACTOR;
@@ -217,7 +217,7 @@ void fprintfHashTableDataForDump (hashTable_t* hashTable, FILE* dumpFile) {
     assert(dumpFile);
 
     fprintf(dumpFile, "<h4><font color=\"#f28816\">sizeOfArr = %llu</font></h4>\n", *hashTableArrSize(hashTable));
-    fprintf(dumpFile, "<h4><font color=\"#f28816\">tableSize = %llu</font></h4>\n", *hashTableSize(hashTable));
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">tableSize = %llu</font></h4>\n", *hashTableNumOfWords(hashtable));
     fprintf(dumpFile, "<h4><font color=\"#f28816\">loadFactor = %lf</font></h4>\n", *hashTableLoadFactor(hashTable));
     fprintf(dumpFile, "<h4><font color=\"#f28816\">errorCode = %X</font></h4>\n", *hashTableErrorCode(hashTable));
 }
@@ -291,7 +291,7 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
     if (hashTableVerifier(hashTable) != htNO_ERRORS)
         hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
 
-    char* bufPos = copyFileContent(nameOfInputFile);
+    const char* bufPos = copyFileContent(nameOfInputFile);
 
     if (!bufPos)
         return ERROR_FILLING_HT;
@@ -321,7 +321,7 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
         if (wordNodeNum == CAN_NOT_FIND_WORD) {
             char* wordPtr = (char*)malloc(wordLen + 1);
             memcpy(wordPtr, wordBuf, wordLen + 1);
-            *hashTableSize(hashTable) += 1;
+            *hashTableNumOfWords(hashtable) += 1;
 
             if (insertAfter(curList, (size_t)*listTail(curList), wordPtr, wordLen,
                         *hashTableDumpStruct(hashTable)) < 0) {
@@ -336,12 +336,50 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
         skipSpaces(&bufPos);
     }
 
-    *hashTableLoadFactor(hashTable) = (double)*hashTableSize(hashTable) / (double)*hashTableArrSize(hashTable);
+    *hashTableLoadFactor(hashTable) = (double)*hashTableNumOfWords(hashtable) / (double)*hashTableArrSize(hashTable);
 
     if (hashTableVerifier(hashTable) != htNO_ERRORS)
         hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
 
     return 0;
+}
+
+int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer) {
+    assert(hashTable);
+    assert(wordsBuffer);
+
+    int numOfFoundWords = 0;
+
+    if (hashTableVerifier(hashTable) != htNO_ERRORS)
+        hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+
+    hashFunc_t hashFunction = *hashTableFunc(hashTable);
+
+    while (*wordsBuffer != '\0') {
+        skipSpaces(&wordsBuffer);
+        if (*wordsBuffer == '\0') break;
+
+        char curWord[MAX_WORD_LENGTH] = {0};
+        int wordLen = 0;
+        while (wordsBuffer[wordLen] && !isspace(wordsBuffer[wordLen]) && wordLen < MAX_WORD_LENGTH-1) {
+            curWord[wordLen] = wordsBuffer[wordLen];
+            wordLen++;
+        }
+        wordsBuffer[wordLen] = '\0';
+        wordsBuffer += wordLen;
+
+        uint64_t wordHash = hashFunction(curWord);
+        size_t index = wordHash % *hashTableArrSize(hashTable);
+        list_t* curList = *hashTableList(hashTable, index);
+
+        int wordNodeNum = findWordInList(curList, curWord, wordLen);
+        if (wordNodeNum != CAN_NOT_FIND_WORD) numOfFoundWords++;
+    }
+
+    if (hashTableVerifier(hashTable) != htNO_ERRORS)
+        hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+
+    return numOfFoundWords;
 }
 
 void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {

@@ -27,7 +27,7 @@ list_t** hashTableList (hashTable_t* hashTable, size_t numOfList);
 
 size_t* hashTableArrSize (hashTable_t* hashTable);
 
-size_t* hashTableSize (hashTable_t* hashTable);
+size_t* hashTableNumOfWords (hashTable_t* hashTable);
 
 double* hashTableLoadFactor (hashTable_t* hashTable);
 

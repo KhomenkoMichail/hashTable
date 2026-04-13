@@ -104,7 +104,7 @@ struct hashTable_t {
 
     size_t sizeOfArr;
 
-    uint64_t tableSize;
+    uint64_t tableNumOfWords;
     double loadFactor;
 
     hashFunc_t hashFunc;

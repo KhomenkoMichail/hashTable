@@ -99,9 +99,9 @@ size_t* hashTableArrSize (hashTable_t* hashTable) {
     return &(hashTable->sizeOfArr);
 }
 
-size_t* hashTableSize (hashTable_t* hashTable) {
+size_t* hashTableNumOfWords (hashTable_t* hashTable) {
     assert(hashTable);
-    return &(hashTable->tableSize);
+    return &(hashTable->tableNumOfWords);
 }
 
 double* hashTableLoadFactor (hashTable_t* hashTable) {

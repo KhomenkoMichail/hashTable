@@ -33,4 +33,6 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile);
 
 void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile);
 
+int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer);
+
 #endif
