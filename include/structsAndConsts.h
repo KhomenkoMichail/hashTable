@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+#ifndef DEBUG_MODE
+    #define DEBUG(code)
+#else
+    #define DEBUG(code) code
+#endif
+
 const int POISON = 0xBAD;
 const int NULL_CANARY = 0xBABE;
 const int MAX_WORD_LENGTH = 255;

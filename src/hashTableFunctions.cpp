@@ -13,21 +13,25 @@
 
 int hashTableCtor (hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t hashFunc,
                    info_t* creationInfo, dump_t* htDump) {
-    assert(hashTable);
-    assert(hashFunc);
-    assert(htDump);
-    assert(creationInfo);
+    #ifdef DEBUG_MODE
+        assert(hashTable);
+        assert(hashFunc);
+        assert(htDump);
+        assert(creationInfo);
+    #endif
 
     hashTable->listArr     = (list_t**)calloc(sizeOfArr, sizeof(list_t*));
 
-    if (!hashTable->listArr) {
-        printf("ERROR! Bad hashTableCtor calloc!\n");
-        *hashTableErrorCode(hashTable) = htBAD_CTOR_CALLOC;
-        return htBAD_CTOR_CALLOC;
-    }
+    #ifdef DEBUG_MODE
+        if (!hashTable->listArr) {
+            printf("ERROR! Bad hashTableCtor calloc!\n");
+            *hashTableErrorCode(hashTable) = htBAD_CTOR_CALLOC;
+            return htBAD_CTOR_CALLOC;
+        }
+    #endif
 
     *hashTableArrSize(hashTable)    = sizeOfArr;
-    *hashTableNumOfWords(hashtable) = 0;
+    *hashTableNumOfWords(hashTable) = 0;
     *hashTableLoadFactor(hashTable) = 0.0;
 
     *hashTableFunc(hashTable)       = hashFunc;
@@ -37,12 +41,14 @@ int hashTableCtor (hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t hashFunc
     for (size_t numOfList = 0; numOfList < sizeOfArr; numOfList++) {
         *hashTableList(hashTable, numOfList) = (list_t*)calloc(1, sizeof(list_t));
 
-        if (!(*hashTableList(hashTable, numOfList))) {
-            printf("ERROR! Bad hashTableCtor calloc!\n");
-            *hashTableErrorCode(hashTable) = htBAD_CTOR_CALLOC;
-            hashTableDtor(hashTable, numOfList - 1);
-            return htBAD_CTOR_CALLOC;
-        }
+        #ifdef DEBUG_MODE
+            if (!(*hashTableList(hashTable, numOfList))) {
+                printf("ERROR! Bad hashTableCtor calloc!\n");
+                *hashTableErrorCode(hashTable) = htBAD_CTOR_CALLOC;
+                hashTableDtor(hashTable, numOfList - 1);
+                return htBAD_CTOR_CALLOC;
+            }
+        #endif
 
         info_t listInfo= {};
         if (listCtor(*hashTableList(hashTable, numOfList), 4, listInfo) != lstNO_ERRORS) {
@@ -89,7 +95,7 @@ int hashTableVerifier (hashTable_t* hashTable) {
         }
     }
 
-    double curLoadFactor = (double)*hashTableNumOfWords(hashtable) / (double)*hashTableArrSize(hashTable);
+    double curLoadFactor = (double)*hashTableNumOfWords(hashTable) / (double)*hashTableArrSize(hashTable);
 
     if (!compareDouble(curLoadFactor, *hashTableLoadFactor(hashTable)))
         *hashTableErrorCode(hashTable) |= -htWRONG_LOAD_FACTOR;
@@ -195,7 +201,7 @@ void fprintfHashTableErrorsForDump (hashTable_t* hashTable, FILE* dumpFile) {
         list_t* curList = *hashTableList(hashTable, curListNum);
 
         fprintf(dumpFile,"-------------------------------------------------------------------\n");
-        fprintf(dumpFile, "<h1><font color=blue>List #%llu [%p] </font></h1>\n", curListNum, curList);
+        fprintf(dumpFile, "<h1><font color=blue>List #%lu [%p] </font></h1>\n", curListNum, curList);
 
         if (!curList) {
             fprintf(dumpFile, "<font color=red>NULL POINTER!</font></h2>\n");
@@ -216,8 +222,8 @@ void fprintfHashTableDataForDump (hashTable_t* hashTable, FILE* dumpFile) {
     assert(hashTable);
     assert(dumpFile);
 
-    fprintf(dumpFile, "<h4><font color=\"#f28816\">sizeOfArr = %llu</font></h4>\n", *hashTableArrSize(hashTable));
-    fprintf(dumpFile, "<h4><font color=\"#f28816\">tableSize = %llu</font></h4>\n", *hashTableNumOfWords(hashtable));
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">sizeOfArr = %lu</font></h4>\n", *hashTableArrSize(hashTable));
+    fprintf(dumpFile, "<h4><font color=\"#f28816\">numOfWords = %lu</font></h4>\n", *hashTableNumOfWords(hashTable));
     fprintf(dumpFile, "<h4><font color=\"#f28816\">loadFactor = %lf</font></h4>\n", *hashTableLoadFactor(hashTable));
     fprintf(dumpFile, "<h4><font color=\"#f28816\">errorCode = %X</font></h4>\n", *hashTableErrorCode(hashTable));
 }
@@ -237,7 +243,7 @@ void createHtGraphImageForDump (hashTable_t* hashTable, FILE* dumpFile,
     char graphvizCallCommand[STR_SIZE] = {};
     snprintf(graphvizCallCommand, sizeof(graphvizCallCommand), "dot -Tpng %s -o graphDumps/HTgraph%d.png", nameOfTextGraphFile, hashTableGraphImageCounter);
     system(graphvizCallCommand);
-    fprintf(dumpFile, "Image:\n <img src=graphDumps/HTgraph%d.png width=%lldpx>\n", hashTableGraphImageCounter, *hashTableArrSize(hashTable) * 150);
+    fprintf(dumpFile, "Image:\n <img src=graphDumps/HTgraph%d.png width=%ldpx>\n", hashTableGraphImageCounter, *hashTableArrSize(hashTable) * 150);
 }
 
 void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile) {
@@ -260,19 +266,19 @@ void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile
     for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable); curListNum++) {
         list_t* curList = *hashTableList(hashTable, curListNum);
 
-        fprintf(graphFile, "    list%llu [label = \" idx = %llu | listSize = %llu \", shape = box, style = filled, fillcolor = \"#8599f5\", color = black];\n",
+        fprintf(graphFile, "    list%lu [label = \" idx = %lu | listSize = %lu \", shape = box, style = filled, fillcolor = \"#8599f5\", color = black];\n",
                 curListNum, curListNum, *listSize(curList));
 
         fprintfCurrentListGraph(curList, curListNum, graphFile, 1);
-        fprintf(graphFile, "    list%llu -> node0_%llu [weight = 1000, color = \"#7eef6f\"];\n", curListNum, curListNum);
+        fprintf(graphFile, "    list%lu -> node0_%lu [weight = 1000, color = \"#7eef6f\"];\n", curListNum, curListNum);
     }
 
     for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable) - 1; curListNum++)
-        fprintf(graphFile, "    list%llu -> list%llu [weight = 1000, color = \"#000000\"];\n", curListNum, curListNum + 1);
+        fprintf(graphFile, "    list%lu -> list%lu [weight = 1000, color = \"#000000\"];\n", curListNum, curListNum + 1);
 
     fprintf(graphFile, "    { rank = same; ");
     for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable); curListNum++)
-        fprintf(graphFile, "list%llu; ", curListNum);
+        fprintf(graphFile, "list%lu; ", curListNum);
 
     fprintf(graphFile, " }\n}\n");
 
@@ -285,11 +291,13 @@ void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile
 
 
 int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
-    assert(hashTable);
-    assert(nameOfInputFile);
+    DEBUG(assert(hashTable);)
+    DEBUG(assert(nameOfInputFile);)
 
-    if (hashTableVerifier(hashTable) != htNO_ERRORS)
-        hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+    #ifdef DEBUG_MODE
+        if (hashTableVerifier(hashTable) != htNO_ERRORS)
+            hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+    #endif
 
     const char* bufPos = copyFileContent(nameOfInputFile);
 
@@ -321,10 +329,10 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
         if (wordNodeNum == CAN_NOT_FIND_WORD) {
             char* wordPtr = (char*)malloc(wordLen + 1);
             memcpy(wordPtr, wordBuf, wordLen + 1);
-            *hashTableNumOfWords(hashtable) += 1;
+            *hashTableNumOfWords(hashTable) += 1;
 
             if (insertAfter(curList, (size_t)*listTail(curList), wordPtr, wordLen,
-                        *hashTableDumpStruct(hashTable)) < 0) {
+                *hashTableDumpStruct(hashTable)) < 0) {
                 printf("Error insert of the word \"%s\"!\n", wordPtr);
                 free(wordPtr);
                 break;
@@ -332,26 +340,29 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
         }
         else *listNodeRepCounter(curList, wordNodeNum) += 1;
 
-
         skipSpaces(&bufPos);
     }
 
-    *hashTableLoadFactor(hashTable) = (double)*hashTableNumOfWords(hashtable) / (double)*hashTableArrSize(hashTable);
+    #ifdef DEBUG_MODE
+        *hashTableLoadFactor(hashTable) = (double)*hashTableNumOfWords(hashTable) / (double)*hashTableArrSize(hashTable);
 
-    if (hashTableVerifier(hashTable) != htNO_ERRORS)
-        hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+        if (hashTableVerifier(hashTable) != htNO_ERRORS)
+            hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+    #endif
 
     return 0;
 }
 
 int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer) {
-    assert(hashTable);
-    assert(wordsBuffer);
+    DEBUG(assert(hashTable));
+    DEBUG(assert(wordsBuffer));
 
     int numOfFoundWords = 0;
 
-    if (hashTableVerifier(hashTable) != htNO_ERRORS)
-        hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+    #ifdef DEBUG_MODE
+        if (hashTableVerifier(hashTable) != htNO_ERRORS)
+            hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+    #endif
 
     hashFunc_t hashFunction = *hashTableFunc(hashTable);
 
@@ -359,13 +370,13 @@ int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer) {
         skipSpaces(&wordsBuffer);
         if (*wordsBuffer == '\0') break;
 
-        char curWord[MAX_WORD_LENGTH] = {0};
+        char curWord[MAX_WORD_LENGTH] = {};
         int wordLen = 0;
         while (wordsBuffer[wordLen] && !isspace(wordsBuffer[wordLen]) && wordLen < MAX_WORD_LENGTH-1) {
             curWord[wordLen] = wordsBuffer[wordLen];
             wordLen++;
         }
-        wordsBuffer[wordLen] = '\0';
+        curWord[wordLen] = '\0';
         wordsBuffer += wordLen;
 
         uint64_t wordHash = hashFunction(curWord);
@@ -376,8 +387,10 @@ int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer) {
         if (wordNodeNum != CAN_NOT_FIND_WORD) numOfFoundWords++;
     }
 
-    if (hashTableVerifier(hashTable) != htNO_ERRORS)
-        hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+    #ifdef DEBUG_MODE
+        if (hashTableVerifier(hashTable) != htNO_ERRORS)
+            hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+    #endif
 
     return numOfFoundWords;
 }
@@ -415,7 +428,7 @@ void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {
         double barHeight = ((double)curSize / (double)maxListSize) * MAX_BAR_HEIGHT_PX;
 
         fprintf(outputFile, "    <div class=\"v-chart-column\">\n");
-        fprintf(outputFile, "        <div class=\"v-chart-value\">%llu</div>\n", curSize);
+        fprintf(outputFile, "        <div class=\"v-chart-value\">%lu</div>\n", curSize);
 
         if (curSize == 0) {
             fprintf(outputFile, "        <div class=\"v-chart-bar\" style=\"height: 2px; background: #e0e0e0; border: none;\"></div>\n");
@@ -423,11 +436,9 @@ void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {
             fprintf(outputFile, "        <div class=\"v-chart-bar\" style=\"height: %dpx;\"></div>\n", (int)barHeight);
         }
 
-        fprintf(outputFile, "        <div class=\"v-chart-label\"> %llu</div>\n", i);
+        fprintf(outputFile, "        <div class=\"v-chart-label\"> %lu</div>\n", i);
         fprintf(outputFile, "    </div>\n");
     }
 
     fprintf(outputFile, "</div>\n<br><br><br>\n");
 }
-
-

@@ -1,4 +1,3 @@
-#include <TXLib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -9,14 +8,16 @@
 #include "../include/listFunctions.h"
 
 int listCtor (list_t* lst, ssize_t capacity, info_t listInfo) {
-    assert(lst);
+    DEBUG(assert(lst);)
 
     lst->nodeArr = (node_t*)calloc(capacity, sizeof(node_t));
-    if (!lst->nodeArr) {
-        printf("ERROR! Bad listCtor calloc!\n");
-        lst->errorCode = lstBAD_CTOR_CALLOC;
-        return lstBAD_CTOR_CALLOC;
-    }
+    #ifdef DEBUG_MODE
+        if (!lst->nodeArr) {
+            printf("ERROR! Bad listCtor calloc!\n");
+            lst->errorCode = lstBAD_CTOR_CALLOC;
+            return lstBAD_CTOR_CALLOC;
+        }
+    #endif
 
     *(listCapacity(lst)) = capacity;
     *(listSize(lst)) = 0;
@@ -56,8 +57,8 @@ int deleteElement (list_t* lst, size_t deletedElement, dump_t* lstDump) {
     lstDump->nameOfFunc = __func__;
     char beforeMessage[STR_SIZE] =  {};
     char afterMessage[STR_SIZE]= {};
-    snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE delete element with idx [%llu]", deletedElement);
-    snprintf(afterMessage, sizeof(afterMessage), "AFTER delete element with idx [%llu]", deletedElement);
+    snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE delete element with idx [%lu]", deletedElement);
+    snprintf(afterMessage, sizeof(afterMessage), "AFTER delete element with idx [%lu]", deletedElement);
 
     if (findBadDeleteNum(lst, deletedElement, lstDump))
         return lstBAD_DELETE_NUM;
@@ -146,7 +147,7 @@ int fprintfLstGraphDump (list_t* lst, const char* textGraphFileName) {
     fprintf(graphFile, "    head -> node%d_0 [color = \"#79D47F\"];\n", *(listHead(lst)));
     fprintf(graphFile, "    tail -> node%d_0 [color = \"#E07397\"];\n", *(listTail(lst)));
     if (*(listFree(lst)) != 0)
-        fprintf(graphFile, "    free -> node%llu_0 [color = gray];\n", *(listFree(lst)));
+        fprintf(graphFile, "    free -> node%lu_0 [color = gray];\n", *(listFree(lst)));
 
     fprintf(graphFile, "    { rank = same; head; tail; free; }\n");
 
@@ -182,15 +183,15 @@ int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int
 
         switch (*listNodeRepCounter(lst, numOfNode)) {
             case POISON:
-                fprintf(graphFile, "    node%d_%llu [label = \"{ idx = %d| data = PZN|",
+                fprintf(graphFile, "    node%d_%lu [label = \"{ idx = %d| data = PZN|",
                                                             numOfNode, numOfList, numOfNode);
                 break;
             case NULL_CANARY:
-                fprintf(graphFile, "    node%d_%llu [label = \"{ idx = %d| data = CANARY|",
+                fprintf(graphFile, "    node%d_%lu [label = \"{ idx = %d| data = CANARY|",
                                                             numOfNode, numOfList, numOfNode);
                 break;
             default:
-                fprintf(graphFile, "    node%d_%llu [label = \"{ idx = %d| word = %s| len = %llu| repCounter = %llu|",
+                fprintf(graphFile, "    node%d_%lu [label = \"{ idx = %d| word = %s| len = %lu| repCounter = %lu|",
                         numOfNode, numOfList, numOfNode, *(listNodeWord(lst, numOfNode)),
                          *(listNodeWordLen(lst, numOfNode)), *(listNodeRepCounter(lst, numOfNode)));
                 break;
@@ -214,15 +215,15 @@ int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int
         switch (*listNodeRepCounter(lst, numOfNode)) {
             case POISON:
 
-                fprintf(graphFile, "    node%d_%llu [label = \"%s idx = %d | data = PZN |",
+                fprintf(graphFile, "    node%d_%lu [label = \"%s idx = %d | data = PZN |",
                         numOfNode, numOfList, bL, numOfNode);
                 break;
             case NULL_CANARY:
-                fprintf(graphFile, "    node%d_%llu [label = \"%s idx = %d | data = CANARY |",
+                fprintf(graphFile, "    node%d_%lu [label = \"%s idx = %d | data = CANARY |",
                         numOfNode, numOfList, bL, numOfNode);
                 break;
             default:
-                fprintf(graphFile, "    node%d_%llu [label = \"%s idx = %d | word = %s | len = %llu | repCounter = %llu |",
+                fprintf(graphFile, "    node%d_%lu [label = \"%s idx = %d | word = %s | len = %lu | repCounter = %lu |",
                         numOfNode, numOfList, bL, numOfNode, *(listNodeWord(lst, numOfNode)),
                          *(listNodeWordLen(lst, numOfNode)), *(listNodeRepCounter(lst, numOfNode)));
                 break;
@@ -235,7 +236,7 @@ int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int
     fprintf(graphFile, "\n");
 
     for (size_t numOfNode = 0; numOfNode < *(listCapacity(lst)) - 1; numOfNode++)
-        fprintf(graphFile, "    node%llu_%llu -> node%llu_%llu [weight = 500, style = invis, color = white];\n", numOfNode, numOfList, numOfNode + 1, numOfList);
+        fprintf(graphFile, "    node%lu_%lu -> node%lu_%lu [weight = 500, style = invis, color = white];\n", numOfNode, numOfList, numOfNode + 1, numOfList);
 
     for (int numOfNode = 0; numOfNode < (int)(*(listCapacity(lst))); numOfNode++) {
 
@@ -245,17 +246,17 @@ int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int
         int nextNum = *(listNext(lst, numOfNode));
 
         if ((nextNum > (int)(*(listCapacity(lst)))) || (nextNum < 0)) {
-            fprintf(graphFile, "    errorNode%d_%llu [shape = doubleoctagon, style = filled, fillcolor = \"#ff0000ff\",  color = \"#ff0000ff\", label = \" idx = %d\", fontcolor = white];\n", nextNum, numOfList, nextNum);
-            fprintf(graphFile, "    node%d_%llu -> errorNode%d_%llu [color = \"#ff0000ff\", penwidth = 4];\n", numOfNode, numOfList, nextNum, numOfList);
+            fprintf(graphFile, "    errorNode%d_%lu [shape = doubleoctagon, style = filled, fillcolor = \"#ff0000ff\",  color = \"#ff0000ff\", label = \" idx = %d\", fontcolor = white];\n", nextNum, numOfList, nextNum);
+            fprintf(graphFile, "    node%d_%lu -> errorNode%d_%lu [color = \"#ff0000ff\", penwidth = 4];\n", numOfNode, numOfList, nextNum, numOfList);
             continue;
         }
 
         if (numOfNode == *(listPrev(lst, nextNum)))
-            fprintf(graphFile, "    node%d_%llu -> node%d_%llu [dir = both, color = \"#9faafaff\"];\n", numOfNode, numOfList, nextNum, numOfList);
+            fprintf(graphFile, "    node%d_%lu -> node%d_%lu [dir = both, color = \"#9faafaff\"];\n", numOfNode, numOfList, nextNum, numOfList);
         else {
-            fprintf(graphFile, "    node%d_%llu -> node%d_%llu [color = \"#220ff5ff\"];\n", numOfNode, numOfList, *(listNext(lst, numOfNode)), numOfList);
-            fprintf(graphFile, "    errorNode%d_%llu [shape = doubleoctagon, style = filled, fillcolor = \"#ff0000ff\",  color = \"#ff0000ff\", label = \" idx = %d\", fontcolor = white];\n", *(listPrev(lst, nextNum)), numOfList, *(listPrev(lst, nextNum)));
-            fprintf(graphFile, "    node%d_%llu -> errorNode%d_%llu [color = \"#ff0000ff\", penwidth = 4];\n", nextNum, numOfList, *(listPrev(lst, nextNum)), numOfList);
+            fprintf(graphFile, "    node%d_%lu -> node%d_%lu [color = \"#220ff5ff\"];\n", numOfNode, numOfList, *(listNext(lst, numOfNode)), numOfList);
+            fprintf(graphFile, "    errorNode%d_%lu [shape = doubleoctagon, style = filled, fillcolor = \"#ff0000ff\",  color = \"#ff0000ff\", label = \" idx = %d\", fontcolor = white];\n", *(listPrev(lst, nextNum)), numOfList, *(listPrev(lst, nextNum)));
+            fprintf(graphFile, "    node%d_%lu -> errorNode%d_%lu [color = \"#ff0000ff\", penwidth = 4];\n", nextNum, numOfList, *(listPrev(lst, nextNum)), numOfList);
         }
     }
 
@@ -263,7 +264,7 @@ int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int
     for (size_t numOfNode = *(listFree(lst));
         (*(listNext(lst, numOfNode)) != 0) && (*(listFree(lst)) != 0) && (freeListCounter <= (*(listCapacity(lst)) - *(listSize(lst))));
         numOfNode = *(listNext(lst, numOfNode)), freeListCounter++)
-        fprintf(graphFile, "    node%llu_%llu -> node%d_%llu [color = gray];\n", numOfNode, numOfList, *(listNext(lst, numOfNode)), numOfList);
+        fprintf(graphFile, "    node%lu_%lu -> node%d_%lu [color = gray];\n", numOfNode, numOfList, *(listNext(lst, numOfNode)), numOfList);
 
     fprintf(graphFile, "\n");
     return 0;
@@ -317,16 +318,16 @@ void fprintfListDataForDump (list_t* lst, FILE* dumpFile) {
     assert(lst);
     assert(dumpFile);
 
-    fprintf(dumpFile, "capacity       == %llu\n", *(listCapacity(lst)));
-    fprintf(dumpFile, "size           == %llu\n", *(listSize(lst)));
+    fprintf(dumpFile, "capacity       == %lu\n", *(listCapacity(lst)));
+    fprintf(dumpFile, "size           == %lu\n", *(listSize(lst)));
     fprintf(dumpFile, "is list linear == %d\n", *isListLinear(lst));
     fprintf(dumpFile, "errorCode      == %d\n\n", lst->errorCode);
 
-    fprintf(dumpFile, "free           == %llu\n\n", *(listFree(lst)));
+    fprintf(dumpFile, "free           == %lu\n\n", *(listFree(lst)));
 
     fprintf(dumpFile, "idx:           ");
     for (size_t numOfNode = 0; numOfNode < lst->capacity; numOfNode++)
-        fprintf(dumpFile, "[ %15llu ]", numOfNode);
+        fprintf(dumpFile, "[ %15lu ]", numOfNode);
     fprintf(dumpFile, "\n");
 
     fprintf(dumpFile, "word:          ");
@@ -336,12 +337,12 @@ void fprintfListDataForDump (list_t* lst, FILE* dumpFile) {
 
     fprintf(dumpFile, "wordLen:       ");
     for (size_t numOfNode = 0; numOfNode < lst->capacity; numOfNode++)
-        fprintf(dumpFile, "[ %15llu ]", *(listNodeWordLen(lst, numOfNode)));
+        fprintf(dumpFile, "[ %15lu ]", *(listNodeWordLen(lst, numOfNode)));
     fprintf(dumpFile, "\n");
 
     fprintf(dumpFile, "repCounter:    ");
     for (size_t numOfNode = 0; numOfNode < lst->capacity; numOfNode++)
-        fprintf(dumpFile, "[ %15llu ]", *(listNodeRepCounter(lst, numOfNode)));
+        fprintf(dumpFile, "[ %15lu ]", *(listNodeRepCounter(lst, numOfNode)));
     fprintf(dumpFile, "\n");
 
     fprintf(dumpFile, "next:          ");
@@ -368,7 +369,7 @@ void createLstGraphImageForDump (list_t* lst, FILE* dumpFile, const char* nameOf
     char graphvizCallCommand[STR_SIZE] = {};
     snprintf(graphvizCallCommand, sizeof(graphvizCallCommand), "dot -Tpng %s -o graphDumps/graph%d.png", nameOfTextGraphFile, graphImageCounter);
     system(graphvizCallCommand);
-    fprintf(dumpFile, "Image:\n <img src=graphDumps/graph%d.png width=%llupx>\n", graphImageCounter, lst->capacity*150);
+    fprintf(dumpFile, "Image:\n <img src=graphDumps/graph%d.png width=%lupx>\n", graphImageCounter, lst->capacity*150);
 }
 
 int listVerifier (list_t* lst) {
@@ -539,11 +540,11 @@ int fprintfListErrorsForDump (list_t* lst, FILE* dumpFile, dump_t* lstDump) {
 
 int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
                  dump_t* lstDump) {
-    assert(lst);
-    assert(lstDump);
-    assert(newWord);
+    DEBUG(assert(lst);)
+    DEBUG(assert(lstDump);)
+    DEBUG(assert(newWord);)
 
-    #ifdef PROTECTION_ON
+    #ifdef DEBUG_MODE
     lstDump->nameOfFunc = __func__;
 
     if (findBadAnchorElemNum(lst, anchorElemNum, lstDump))
@@ -558,8 +559,6 @@ int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
         listDump (lst, lstDump, beforeMessage);
         return lst->errorCode;
     }
-
-    listDump (lst, lstDump, beforeMessage);
     #endif
 
     if(lst->free == 0)
@@ -585,14 +584,13 @@ int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
     *listFree(lst) = nextFreeNum;
     *(listSize(lst)) += 1;
 
-    #ifdef PROTECTION_ON
+    #ifdef DEBUG_MODE
     if(listVerifier(lst)) {
         listDump (lst, lstDump, beforeMessage);
         return lst->errorCode;
     }
-
-    listDump (lst, lstDump, afterMessage);
     #endif
+
     return newNodeNum;
 }
 

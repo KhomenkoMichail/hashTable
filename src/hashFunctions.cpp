@@ -9,12 +9,12 @@ uint64_t alwaysZeroHash (const char* str) {
 }
 
 uint64_t firstLetterASCIICodeHash (const char* str) {
-    if (!str || !*str) return 0;
+    DEBUG(if (!str || !*str) return 0;)
     return (uint64_t)*str;
 }
 
 uint64_t strlenHash (const char* str) {
-    if (!str || !*str) return 0;
+    DEBUG(if (!str || !*str) return 0;)
     uint64_t hash = 0;
 
     for ( ; *str; str++)
@@ -24,7 +24,7 @@ uint64_t strlenHash (const char* str) {
 }
 
 uint64_t sumASCIIcodesHash (const char* str) {
-    if (!str || !*str) return 0;
+    DEBUG(if (!str || !*str) return 0;)
     uint64_t hash = 0;
 
     for ( ; *str; str++)
@@ -34,7 +34,7 @@ uint64_t sumASCIIcodesHash (const char* str) {
 }
 
 uint64_t rolHash (const char* str) {
-    if (!str || !*str) return 0;
+    DEBUG(if (!str || !*str) return 0;)
 
     uint64_t hash = (uint8_t)(*str);
     str++;
@@ -46,7 +46,7 @@ uint64_t rolHash (const char* str) {
 }
 
 uint64_t rorHash (const char* str) {
-    if (!str || !*str) return 0;
+    DEBUG(if (!str || !*str) return 0;)
 
     uint64_t hash = (uint8_t)(*str);
     str++;
@@ -58,7 +58,7 @@ uint64_t rorHash (const char* str) {
 }
 
 uint64_t gnuHash (const char* str) {
-    if (!str || !*str) return 0;
+    DEBUG(if (!str || !*str) return 0;)
     uint64_t hash = 5381;
 
     for ( ; *str; str++)
@@ -68,7 +68,7 @@ uint64_t gnuHash (const char* str) {
 }
 
 uint64_t crc32Hash(const char* str) {
-    if (!str) return 0;
+    DEBUG(if (!str) return 0;)
 
     uint64_t crc = 0xFFFFFFFF;
 

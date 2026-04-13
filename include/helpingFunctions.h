@@ -5,7 +5,7 @@ char* copyFileContent (const char* nameOfFile);
 
 unsigned int getSizeOfFile (int fileDescriptor);
 
-void skipSpaces(char** bufPos);
+void skipSpaces(const char** bufPos);
 
 int compareDouble (double first, double second);
 
