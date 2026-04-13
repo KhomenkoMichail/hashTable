@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "../include/structsAndConsts.h"
 #include "../include/structAccessFunctions.h"
@@ -287,8 +288,6 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
     assert(hashTable);
     assert(nameOfInputFile);
 
-    //hashTableDump(hashTable, "MY DUMP BEFORE");
-
     if (hashTableVerifier(hashTable) != htNO_ERRORS)
         hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
 
@@ -299,16 +298,19 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
 
     hashFunc_t hashFunction = *hashTableFunc(hashTable);
 
-    int wordLen = 0;
 
     while (*bufPos != '\0') {
         skipSpaces(&bufPos);
+        if (*bufPos == '\0') break;
 
-        char wordBuf[MAX_WORD_LENGTH] = {};
-        sscanf(bufPos, "%s%n", wordBuf, &wordLen);
+        char wordBuf[MAX_WORD_LENGTH] = {0};
+        int wordLen = 0;
+        while (bufPos[wordLen] && !isspace(bufPos[wordLen]) && wordLen < MAX_WORD_LENGTH-1) {
+            wordBuf[wordLen] = bufPos[wordLen];
+            wordLen++;
+        }
+        wordBuf[wordLen] = '\0';
         bufPos += wordLen;
-
-        if (wordLen == MAX_WORD_LENGTH) wordBuf[MAX_WORD_LENGTH - 1] = '\0';
 
         uint64_t wordHash = hashFunction(wordBuf);
         size_t index = wordHash % *hashTableArrSize(hashTable);
@@ -319,6 +321,7 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
         if (wordNodeNum == CAN_NOT_FIND_WORD) {
             char* wordPtr = (char*)malloc(wordLen + 1);
             memcpy(wordPtr, wordBuf, wordLen + 1);
+            *hashTableSize(hashTable) += 1;
 
             if (insertAfter(curList, (size_t)*listTail(curList), wordPtr, wordLen,
                         *hashTableDumpStruct(hashTable)) < 0) {
@@ -329,7 +332,6 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
         }
         else *listNodeRepCounter(curList, wordNodeNum) += 1;
 
-        *hashTableSize(hashTable) += 1;
 
         skipSpaces(&bufPos);
     }
@@ -338,8 +340,6 @@ int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
 
     if (hashTableVerifier(hashTable) != htNO_ERRORS)
         hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
-
-    //hashTableDump(hashTable, "MY DUMP AFTER");
 
     return 0;
 }
@@ -365,7 +365,7 @@ void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {
     fprintf(outputFile, "                   border-radius: 3px 3px 0 0; }\n");
     fprintf(outputFile, "    .v-chart-value { font-size: 10px; color: #555; margin-bottom: 5px; font-family: monospace; }\n");
     fprintf(outputFile, "    .v-chart-label { font-size: 10px; color: #333; margin-top: 5px; \n");
-    fprintf(outputFile, "                     white-space: nowrap; font-family: monospace; }\n");
+    fprintf(outputFile, "                     white-space: nowrap; font-family: monospace; transform: rotate(-45deg); }\n");
     fprintf(outputFile, "</style>\n\n");
 
     fprintf(outputFile, "<h2>Hash collision histogram of the \"%s\" hashTable</h2>\n",

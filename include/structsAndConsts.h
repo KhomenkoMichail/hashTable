@@ -5,7 +5,7 @@
 
 const int POISON = 0xBAD;
 const int NULL_CANARY = 0xBABE;
-const int MAX_WORD_LENGTH = 32;
+const int MAX_WORD_LENGTH = 255;
 
 typedef uint64_t (*hashFunc_t)(const char* str);
 
@@ -50,7 +50,7 @@ struct list_t {
     info_t creationInfo;
 };
 
-const size_t MAX_CAPACITY = 5000;
+const size_t MAX_CAPACITY = SIZE_MAX / 2;
 
 enum hashTableErr_t {
     htNO_ERRORS            =  0x00,
