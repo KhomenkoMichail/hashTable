@@ -4,48 +4,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <math.h>
+#include <cctype>
 #include <sys/stat.h>
 
+#include "../include/structsAndConsts.h"
 #include "../include/helpingFunctions.h"
 
-/*
-char* copyFileContent (const char* nameOfFile) {
-    assert(nameOfFile);
-
-    int fileDescriptor = open(nameOfFile, O_RDONLY, 0);
-    if (fileDescriptor == -1) {
-
-        fprintf(stderr, "Error of opening file \"%s\"", nameOfFile);
-        perror("");
-        return NULL;
-    }
-
-    unsigned int sizeOfFile = getSizeOfFile(fileDescriptor);
-    if (sizeOfFile == 0) {
-        close(fileDescriptor);
-        return NULL;
-    }
-
-    char* fileCopyBuffer = (char*)calloc(sizeOfFile + 1, sizeof(char));
-    if (!fileCopyBuffer) {
-        printf("Error calloc for fileCopyBuffer in func %s.\n", __func__);
-    }
-
-    if (fileCopyBuffer) {
-        size_t numOfReadSymbols = read(fileDescriptor, fileCopyBuffer, sizeOfFile);
-        fileCopyBuffer[numOfReadSymbols] = '\0';
-    }
-
-    if(close(fileDescriptor) != 0) {
-        fprintf(stderr, "Error of closing file \"%s\"", nameOfFile);
-        perror("");
-        return NULL;
-    }
-
-    return fileCopyBuffer;
-}*/
-
-unsigned int getSizeOfFile (int fileDescriptor) {
+size_t getSizeOfFile (int fileDescriptor) {
     struct stat fileInfo = {};
 
     if (fstat(fileDescriptor, &fileInfo) == 0)
@@ -80,21 +45,66 @@ int compareDouble (double first, double second) {
     }
 }
 
-struct line {
-    char* ptrToString;
-    size_t lengthOfString;
-};
+size_t countWords(const char* text) {
+    assert(text);
 
-struct novel {
-    char* text;
-    struct line* arrOfStringStructs;
-    size_t sizeOfText;
-    size_t numberOfStrings;
-};
+    size_t count = 0;
+    int inWord = 0;
 
+    while (*text != '\0') {
+        if (isspace((unsigned char)*text)) {
+            inWord = 0;
+        } else if (!inWord) {
+            inWord = 1;
+            count++;
+        }
+        text++;
+    }
+    return count;
+}
 
-char* copyFileContent (struct novel* structAddress, const char* fileName) {
+void getArrOfWordStructs(wordArrStruct_t* structAddress) {
+    assert(structAddress);
+    assert(structAddress->text);
+
+    structAddress->arrOfWordStructs = (word_t*)calloc(structAddress->numberOfWords, sizeof(word_t));
+    if (!structAddress->arrOfWordStructs) {
+        perror("Error calloc for arrOfWordStructs");
+        return;
+    }
+
+    size_t wordIndex = 0;
+    char* curPos = structAddress->text;
+    char* wordStart = NULL;
+    int inWord = 0;
+
+    while (*curPos != '\0') {
+
+        if (isspace((unsigned char)*curPos)) {
+            if (inWord) {
+                structAddress->arrOfWordStructs[wordIndex].lengthOfWord = (size_t)(curPos - wordStart);
+
+                *curPos = '\0';
+
+                wordIndex++;
+                inWord = 0;
+            }
+        } else if (!inWord) {
+            wordStart = curPos;
+            structAddress->arrOfWordStructs[wordIndex].ptrToWord = wordStart;
+            inWord = 1;
+        }
+        curPos++;
+    }
+
+    if (inWord && wordIndex < structAddress->numberOfWords) {
+        structAddress->arrOfWordStructs[wordIndex].lengthOfWord = (size_t)(curPos - wordStart);
+    }
+}
+
+char* copyFileContent(wordArrStruct_t* structAddress, const char* fileName) {
     assert(fileName);
+    assert(structAddress);
 
     int fileDescriptor = open(fileName, O_RDONLY, 0);
     if (fileDescriptor == -1) {
@@ -110,6 +120,10 @@ char* copyFileContent (struct novel* structAddress, const char* fileName) {
     }
 
     char* fileCopyBuffer = (char*)calloc(sizeOfFile + 1, sizeof(char));
+    if (!fileCopyBuffer) {
+        close(fileDescriptor);
+        return NULL;
+    }
 
     size_t numOfReadSymbols = read(fileDescriptor, fileCopyBuffer, sizeOfFile);
     fileCopyBuffer[numOfReadSymbols] = '\0';
@@ -117,7 +131,6 @@ char* copyFileContent (struct novel* structAddress, const char* fileName) {
     if(close(fileDescriptor) != 0) {
         fprintf(stderr, "Error of closing file \"%s\"", fileName);
         perror("");
-        return NULL;
     }
 
     structAddress->sizeOfText = numOfReadSymbols;
@@ -125,49 +138,49 @@ char* copyFileContent (struct novel* structAddress, const char* fileName) {
     return fileCopyBuffer;
 }
 
-void getStructNovel (struct novel* structAddress, const char* fileName) {
+void getWordArrStruct (wordArrStruct_t* structAddress, const char* fileName) {
     assert(structAddress);
     assert(fileName);
 
     char* buffer = copyFileContent(structAddress, fileName);
     assert(buffer);
 
-    size_t numberOfStrings    = getNumberOfSymbols(buffer, '\n');
-    char** arrOfPtrsToStrings = (char**)calloc(numberOfStrings, sizeof(*arrOfPtrsToStrings));
+    structAddress->text = buffer;
+    structAddress->numberOfWords = countWords(buffer);
 
-    structAddress->text               = buffer;
-    structAddress->numberOfStrings    = numberOfStrings;
-
-    getArrOfStringStructs(structAddress);
-
+    getArrOfWordStructs(structAddress);
 }
 
-void getArrOfStringStructs (struct novel* structAddress) {
-    assert(structAddress);
-
-    structAddress->arrOfStringStructs = (struct line*)calloc(structAddress->numberOfStrings, sizeof(struct line));
-    size_t line = 0;
-    (structAddress->arrOfStringStructs[line]).ptrToString = structAddress->text;
-    (structAddress->arrOfStringStructs[line]).lengthOfString = myStrlen((structAddress->arrOfStringStructs[line]).ptrToString) + 1;
-    line++;
-
-    size_t numOfCharInText = 0;
-    for( ; (structAddress->text[numOfCharInText] != '\0') && (line < structAddress->numberOfStrings) ; numOfCharInText++) {
-
-        if (structAddress->text[numOfCharInText] == '\n') {
-            (structAddress->arrOfStringStructs[line]).ptrToString = structAddress->text + numOfCharInText + 1;
-            line++;
-        }
+void freeWordArrStruct(wordArrStruct_t* structAddress) {
+    if (structAddress == NULL) {
+        return;
     }
 
-    getLengthOfStrings(structAddress);
+    if (structAddress->arrOfWordStructs != NULL) {
+        free(structAddress->arrOfWordStructs);
+        structAddress->arrOfWordStructs = NULL;
+    }
+
+    if (structAddress->text != NULL) {
+        free(structAddress->text);
+        structAddress->text = NULL;
+    }
+
+    structAddress->sizeOfText = 0;
+    structAddress->numberOfWords = 0;
 }
 
-void getLengthOfStrings (struct novel* structAddress) {
-    assert(structAddress);
+void swapWords(word_t* wordA, word_t* wordB) {
+    word_t temp = *wordA;
+    *wordA = *wordB;
+    *wordB = temp;
+}
 
-    for(size_t line = 0; line < structAddress->numberOfStrings - 1; line++)
-        (structAddress->arrOfStringStructs[line]).lengthOfString = (size_t)((structAddress->arrOfStringStructs[line+1]).ptrToString - (structAddress->arrOfStringStructs[line]).ptrToString);
+void shuffleWords(wordArrStruct_t* wordArr) {
+    if (!wordArr || wordArr->numberOfWords < 2) return;
 
-    (structAddress->arrOfStringStructs[structAddress->numberOfStrings - 1]).lengthOfString = myStrlen((structAddress->arrOfStringStructs[structAddress->numberOfStrings - 1]).ptrToString) + 1;
+    for (size_t i = wordArr->numberOfWords - 1; i > 0; i--) {
+        size_t j = rand() % (i + 1);
+        swapWords(&wordArr->arrOfWordStructs[i], &wordArr->arrOfWordStructs[j]);
+    }
 }

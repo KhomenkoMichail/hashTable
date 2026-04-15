@@ -25,7 +25,7 @@ int findBadNextAndPrevMatch (list_t* lst);
 
 int fprintfListErrorsForDump (list_t* lst, FILE* dumpFile, dump_t* lstDump);
 
-int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
+int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen, uint64_t wordHash,
                  dump_t* lstDump);
 
 listErr_t findBadNodeCycle (list_t* lst);
@@ -34,7 +34,7 @@ listErr_t findBadAnchorElemNum (list_t* lst, size_t anchorElemNum, dump_t* lstDu
 
 listErr_t findBadDeleteNum(list_t* lst, size_t deletedElement, dump_t* lstDump);
 
-int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
+int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen, uint64_t wordHash,
                   dump_t* lstDump);
 
 listErr_t findFreeListCycle (list_t* lst);
@@ -49,6 +49,6 @@ listErr_t reallocListDown (list_t* lst);
 
 int findNonlinearList(list_t* lst);
 
-int findWordInList(list_t* lst, const char* searchWord, size_t wordLen);
+extern "C" int findWordInList_asm(list_t* lst, const char* searchWord, uint64_t wordHash);
 
 #endif

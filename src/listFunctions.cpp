@@ -44,21 +44,22 @@ int listCtor (list_t* lst, ssize_t capacity, info_t listInfo) {
     *isListLinear(lst) = 1;
 
     lst->errorCode = lstNO_ERRORS;
-    listVerifier(lst);
+    DEBUG(listVerifier(lst);)
 
     return lst->errorCode;
 }
 
 int deleteElement (list_t* lst, size_t deletedElement, dump_t* lstDump) {
-    assert(lst);
-    assert(lstDump);
+    DEBUG(assert(lst);)
+    DEBUG(assert(lstDump);)
+    (void)lstDump;
 
-
-    lstDump->nameOfFunc = __func__;
-    char beforeMessage[STR_SIZE] =  {};
-    char afterMessage[STR_SIZE]= {};
-    snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE delete element with idx [%lu]", deletedElement);
-    snprintf(afterMessage, sizeof(afterMessage), "AFTER delete element with idx [%lu]", deletedElement);
+    #ifdef DEBUG_MODe
+        lstDump->nameOfFunc = __func__;
+        char beforeMessage[STR_SIZE] =  {};
+        char afterMessage[STR_SIZE]= {};
+        snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE delete element with idx [%lu]", deletedElement);
+        snprintf(afterMessage, sizeof(afterMessage), "AFTER delete element with idx [%lu]", deletedElement);
 
     if (findBadDeleteNum(lst, deletedElement, lstDump))
         return lstBAD_DELETE_NUM;
@@ -67,8 +68,8 @@ int deleteElement (list_t* lst, size_t deletedElement, dump_t* lstDump) {
         listDump (lst, lstDump, beforeMessage);
         return lst->errorCode;
     }
+    #endif
 
-    listDump (lst, lstDump, beforeMessage);
     *(listNodeRepCounter(lst, deletedElement)) = POISON;
     *(listNodeWordLen(lst, deletedElement)) = 0;
 
@@ -87,16 +88,18 @@ int deleteElement (list_t* lst, size_t deletedElement, dump_t* lstDump) {
     *(listFree(lst)) = deletedElement;
     *(listSize(lst)) -= 1;
 
-    if(listVerifier(lst)) {
-        listDump (lst, lstDump, afterMessage);
-        return lst->errorCode;
-    }
+    #ifdef DEBUG_MODE
+        if(listVerifier(lst)) {
+            listDump (lst, lstDump, afterMessage);
+            return lst->errorCode;
+        }
+    #endif
 
     return 0;
 }
 
 listErr_t reallocListUP (list_t* lst) {
-    assert(lst);
+    DEBUG(assert(lst);)
 
     size_t oldCapacity = *(listCapacity(lst));
     *(listCapacity(lst)) = 2*oldCapacity;
@@ -167,42 +170,8 @@ int fprintfCurrentListGraph (list_t* lst, size_t numOfList, FILE* graphFile, int
     assert(lst);
     assert(graphFile);
 
-    /*
-    for (int numOfNode = 0; numOfNode < (int)(lst->capacity); numOfNode++) {
-
-        const char* fillColor = "#C2BBBD";
-
-        if (numOfNode == *(listHead(lst)))
-            fillColor = "#79D47F";
-
-        if (numOfNode == *(listTail(lst)))
-            fillColor = "#E07397";
-
-        if ((*(listNodeRepCounter(lst, numOfNode)) == POISON) && (*(listPrev(lst, numOfNode)) == -1))
-            fillColor = "#E3f194";
-
-        switch (*listNodeRepCounter(lst, numOfNode)) {
-            case POISON:
-                fprintf(graphFile, "    node%d_%lu [label = \"{ idx = %d| data = PZN|",
-                                                            numOfNode, numOfList, numOfNode);
-                break;
-            case NULL_CANARY:
-                fprintf(graphFile, "    node%d_%lu [label = \"{ idx = %d| data = CANARY|",
-                                                            numOfNode, numOfList, numOfNode);
-                break;
-            default:
-                fprintf(graphFile, "    node%d_%lu [label = \"{ idx = %d| word = %s| len = %lu| repCounter = %lu|",
-                        numOfNode, numOfList, numOfNode, *(listNodeWord(lst, numOfNode)),
-                         *(listNodeWordLen(lst, numOfNode)), *(listNodeRepCounter(lst, numOfNode)));
-                break;
-        }
-
-        fprintf(graphFile, "    next = %d| prev = %d }\", style = filled, fillcolor = \"%s\", color = black];\n",
-                *(listNext(lst, numOfNode)), *(listPrev(lst, numOfNode)), fillColor);
-    }*/
-
-    const char* bL = isBT ? "{" : ""; // левая скобка
-    const char* bR = isBT ? "}" : ""; // правая скобка
+    const char* bL = isBT ? "{" : "";
+    const char* bR = isBT ? "}" : "";
 
     for (int numOfNode = 0; numOfNode < (int)(lst->capacity); numOfNode++) {
 
@@ -408,8 +377,8 @@ int listVerifier (list_t* lst) {
     if (findBadNodeCycle(lst))
         lst->errorCode |= -lstBAD_NODE_CYCLE;
 
-    //if (findFreeListCycle(lst))
-    //    lst->errorCode |= -lstFREE_LIST_CYCLE;
+    if (findFreeListCycle(lst))
+        lst->errorCode |= -lstFREE_LIST_CYCLE;
 
     if (findNonlinearList(lst))
         *(isListLinear(lst)) = 0;
@@ -538,11 +507,12 @@ int fprintfListErrorsForDump (list_t* lst, FILE* dumpFile, dump_t* lstDump) {
     return listErrorsCounter;
 }
 
-int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
+int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen, uint64_t wordHash,
                  dump_t* lstDump) {
     DEBUG(assert(lst);)
     DEBUG(assert(lstDump);)
     DEBUG(assert(newWord);)
+    (void)lstDump;
 
     #ifdef DEBUG_MODE
     lstDump->nameOfFunc = __func__;
@@ -570,6 +540,7 @@ int insertAfter (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
     *(listNodeRepCounter(lst, newNodeNum)) = 1;
     *(listNodeWord(lst, newNodeNum)) = newWord;
     *(listNodeWordLen(lst, newNodeNum)) = wordLen;
+    *(listNodeWordHash(lst, newNodeNum)) = wordHash;
 
     *(listPrev(lst, newNodeNum)) = anchorElemNum;
 
@@ -652,28 +623,29 @@ listErr_t findBadDeleteNum(list_t* lst, size_t deletedElement, dump_t* lstDump) 
     return lstNO_ERRORS;
 }
 
-int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
+int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen, uint64_t wordHash,
                   dump_t* lstDump) {
-    assert(lst);
-    assert(newWord);
-    assert(lstDump);
+    DEBUG(assert(lst);)
+    DEBUG(assert(newWord);)
+    DEBUG(assert(lstDump);)
+    (void)lstDump;
 
-    lstDump->nameOfFunc = __func__;
+    #ifdef DEBUG_MODE
+        lstDump->nameOfFunc = __func__;
 
-    if (findBadAnchorElemNum(lst, anchorElemNum, lstDump))
-        return lstBAD_INSERT_ANCHOR_NUM;
+        if (findBadAnchorElemNum(lst, anchorElemNum, lstDump))
+            return lstBAD_INSERT_ANCHOR_NUM;
 
-    char beforeMessage[STR_SIZE] =  {};
-    char afterMessage[STR_SIZE]= {};
-    snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE Insert \"%s\" before idx [%d]", newWord, anchorElemNum);
-    snprintf(afterMessage, sizeof(afterMessage), "AFTER Insert \"%s\" before idx [%d]",  newWord, anchorElemNum);
+        char beforeMessage[STR_SIZE] =  {};
+        char afterMessage[STR_SIZE]= {};
+        snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE Insert \"%s\" before idx [%d]", newWord, anchorElemNum);
+        snprintf(afterMessage, sizeof(afterMessage), "AFTER Insert \"%s\" before idx [%d]",  newWord, anchorElemNum);
 
-    if(listVerifier(lst)) {
-        listDump (lst, lstDump, beforeMessage);
-        return lst->errorCode;
-    }
-
-    listDump (lst, lstDump, beforeMessage);
+        if(listVerifier(lst)) {
+            listDump (lst, lstDump, beforeMessage);
+            return lst->errorCode;
+        }
+    #endif
 
     if(lst->free == 0)
         if (reallocListUP(lst))
@@ -686,6 +658,7 @@ int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
     *(listNodeRepCounter(lst, newNodeNum)) = 1;
     *(listNodeWord(lst, newNodeNum)) = newWord;
     *(listNodeWordLen(lst, newNodeNum)) = wordLen;
+    *(listNodeWordHash(lst, newNodeNum)) = wordHash;
 
     *(listNext(lst, newNodeNum)) = anchorElemNum;
 
@@ -698,12 +671,12 @@ int insertBefore (list_t* lst, int anchorElemNum, char* newWord, size_t wordLen,
     *listFree(lst) = nextFreeNum;
     *(listSize(lst)) += 1;
 
-    if(listVerifier(lst)) {
-        listDump (lst, lstDump, beforeMessage);
-        return lst->errorCode;
-    }
-
-    listDump (lst, lstDump, afterMessage);
+    #ifdef DEBUG_MODE
+        if(listVerifier(lst)) {
+            listDump (lst, lstDump, beforeMessage);
+            return lst->errorCode;
+        }
+    #endif
 
     return newNodeNum;
 }
@@ -736,21 +709,15 @@ listErr_t findFreeListCycle (list_t* lst) {
 }
 
 void listDtor (list_t* lst) {
-    assert(lst);
-
-    for (size_t curNode = 0; curNode < lst->capacity; curNode++)
-        if (*listNodeWord(lst, curNode) != NULL) {
-            free(*listNodeWord(lst, curNode));
-            *listNodeWord(lst, curNode) = NULL;
-        }
+    DEBUG(assert(lst);)
 
     free(lst->nodeArr);
     lst->nodeArr = NULL;
 }
 
 int linearOrderNodeComparator(const void* firstStruct, const void* secondStruct) {
-    assert(firstStruct);
-    assert(secondStruct);
+    DEBUG(assert(firstStruct);)
+    DEBUG(assert(secondStruct);)
 
     const node_t* firstNode = (const node_t*)firstStruct;
     const node_t* secondNode = (const node_t*)secondStruct;
@@ -777,14 +744,16 @@ int linearOrderNodeComparator(const void* firstStruct, const void* secondStruct)
 }
 
 int makeListLinear (list_t* lst, dump_t* lstDump) {
-    assert(lst);
-    assert(lstDump);
+    DEBUG(assert(lst);)
+    DEBUG(assert(lstDump);)
+    (void)lstDump;
 
-    lstDump->nameOfFunc = __func__;
-    char beforeMessage[STR_SIZE] =  {};
-    char afterMessage[STR_SIZE]= {};
-    snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE making list linear");
-    snprintf(afterMessage, sizeof(afterMessage), "AFTER making list linear");
+    #ifdef DEBUG_MODE
+        lstDump->nameOfFunc = __func__;
+        char beforeMessage[STR_SIZE] =  {};
+        char afterMessage[STR_SIZE]= {};
+        snprintf(beforeMessage, sizeof(beforeMessage), "BEFORE making list linear");
+        snprintf(afterMessage, sizeof(afterMessage), "AFTER making list linear");
 
     if(listVerifier(lst)) {
         listDump (lst, lstDump, beforeMessage);
@@ -792,6 +761,7 @@ int makeListLinear (list_t* lst, dump_t* lstDump) {
     }
 
     listDump (lst, lstDump, beforeMessage);
+    #endif
 
     int nodeIdx = 1;
     for (size_t numOfNode = 0; *listNext(lst, numOfNode) != 0; ) {
@@ -818,17 +788,19 @@ int makeListLinear (list_t* lst, dump_t* lstDump) {
 
     *isListLinear(lst) = 1;
 
-    if(listVerifier(lst)) {
-        listDump (lst, lstDump, afterMessage);
-        return lst->errorCode;
-    }
+    #ifdef DEBUG_MODE
+        if(listVerifier(lst)) {
+            listDump (lst, lstDump, afterMessage);
+            return lst->errorCode;
+        }
 
-    listDump (lst, lstDump, afterMessage);
+        listDump (lst, lstDump, afterMessage);
+    #endif
     return 0;
 }
 
 listErr_t reallocListDown (list_t* lst) {
-    assert(lst);
+    DEBUG(assert(lst);)
 
     size_t oldCapacity = *(listCapacity(lst));
     *(listCapacity(lst)) = oldCapacity / 2;
@@ -856,20 +828,4 @@ int findNonlinearList(list_t* lst) {
             return 1;
 
     return 0;
-}
-
-int findWordInList(list_t* lst, const char* searchWord, size_t wordLen) {
-    assert(lst);
-    assert(searchWord);
-
-    int curNode = *listHead(lst);
-    while (curNode != 0) {
-        if (wordLen == *listNodeWordLen(lst, curNode) &&
-            strcmp(searchWord, *listNodeWord(lst, curNode)) == 0)
-            return curNode;
-
-        curNode = *listNext(lst, curNode);
-    }
-
-    return CAN_NOT_FIND_WORD;
 }

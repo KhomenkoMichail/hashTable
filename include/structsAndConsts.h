@@ -9,54 +9,17 @@
     #define DEBUG(code) code
 #endif
 
+const size_t NUM_OF_TESTS    = 1000;
+
+const size_t HASH_TABLE_SIZE = 4007;
+
 const int POISON = 0xBAD;
 const int NULL_CANARY = 0xBABE;
-const int MAX_WORD_LENGTH = 255;
-
-typedef uint64_t (*hashFunc_t)(const char* str);
-
-
-struct tableElem_t {
-    char* word;
-    size_t wordLen;
-    size_t repCounter;
-};
-
-typedef tableElem_t listData_t;
-
-struct node_t {
-    listData_t data;
-    int next;
-    int prev;
-};
-
-struct info_t {
-    const char* name;
-    const char* nameOfFile;
-    const char* nameOfFunc;
-    unsigned int numOfLine;
-};
-
-struct listFiles {
-    const char* nameOfDumpFile;
-    const char* nameOfGraphFile;
-    FILE* dumpFile;
-};
-
-struct list_t {
-    node_t* nodeArr;
-    size_t free;
-
-    size_t capacity;
-    size_t size;
-
-    int isLinear;
-
-    int errorCode;
-    info_t creationInfo;
-};
-
 const size_t MAX_CAPACITY = SIZE_MAX / 2;
+
+const int MAX_WORD_LENGTH = 255;
+const size_t STR_SIZE = 64;
+const double MAX_BAR_HEIGHT_PX = 200.0;
 
 enum hashTableErr_t {
     htNO_ERRORS            =  0x00,
@@ -92,8 +55,49 @@ enum listErr_t {
     lstBAD_CTOR_CALLOC          = -0x8000
 };
 
-const size_t STR_SIZE = 64;
-const double MAX_BAR_HEIGHT_PX = 200.0;
+typedef uint64_t (*hashFunc_t)(const char* str);
+
+struct tableElem_t {
+    char* word;
+    size_t wordLen;
+    size_t repCounter;
+    uint64_t wordHash;
+};
+
+typedef tableElem_t listData_t;
+
+struct node_t {
+    int next;
+    int prev;
+    listData_t data;
+};
+
+struct info_t {
+    const char* name;
+    const char* nameOfFile;
+    const char* nameOfFunc;
+    unsigned int numOfLine;
+};
+
+struct listFiles {
+    const char* nameOfDumpFile;
+    const char* nameOfGraphFile;
+    FILE* dumpFile;
+};
+
+struct list_t {
+    node_t* nodeArr;
+    size_t free;
+
+    size_t capacity;
+    size_t size;
+
+    int isLinear;
+
+    int errorCode;
+    info_t creationInfo;
+};
+
 
 struct dump_t {
     const char* nameOfFile;
@@ -119,5 +123,17 @@ struct hashTable_t {
     dump_t* dump;
     info_t* creationInfo;
 };
+
+typedef struct {
+    char* ptrToWord;
+    size_t lengthOfWord;
+} word_t;
+
+typedef struct {
+    char* text;
+    word_t* arrOfWordStructs;
+    size_t sizeOfText;
+    size_t numberOfWords;
+} wordArrStruct_t;
 
 #endif

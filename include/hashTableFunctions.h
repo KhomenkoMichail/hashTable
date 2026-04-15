@@ -29,10 +29,14 @@ void createHtGraphImageForDump (hashTable_t* hashTable, FILE* dumpFile,
 
 void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile);
 
-int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile);
+int fillHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr);
 
 void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile);
 
 int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer);
+
+int findWordInTheHashTable (hashTable_t* hashTable, const char* word);
+
+int testHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr, size_t numOfTests);
 
 #endif

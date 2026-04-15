@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <immintrin.h>
 
+#include "../include/structsAndConsts.h"
 #include "../include/hashFunctions.h"
 
 uint64_t alwaysZeroHash (const char* str) {
@@ -73,17 +75,9 @@ uint64_t crc32Hash(const char* str) {
     uint64_t crc = 0xFFFFFFFF;
 
     while (*str) {
-        crc ^= (uint8_t)(*str);
-
-        for (int i = 0; i < 8; i++) {
-            if (crc & 1) {
-                crc = (crc >> 1) ^ 0xEDB88320;
-            } else {
-                crc >>= 1;
-            }
-        }
+        crc = _mm_crc32_u8(crc, (uint8_t)*str);
         str++;
     }
 
-    return ~crc;
+    return crc;
 }

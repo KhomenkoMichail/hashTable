@@ -10,7 +10,6 @@
 #include "../include/listFunctions.h"
 #include "../include/hashTableFunctions.h"
 
-
 int hashTableCtor (hashTable_t* hashTable, size_t sizeOfArr, hashFunc_t hashFunc,
                    info_t* creationInfo, dump_t* htDump) {
     #ifdef DEBUG_MODE
@@ -289,112 +288,6 @@ void fprintfHtGraphDump (hashTable_t* hashTable, const char* nameOfTextGraphFile
     }
 }
 
-
-int fillHashTable (hashTable_t* hashTable, const char* nameOfInputFile) {
-    DEBUG(assert(hashTable);)
-    DEBUG(assert(nameOfInputFile);)
-
-    #ifdef DEBUG_MODE
-        if (hashTableVerifier(hashTable) != htNO_ERRORS)
-            hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
-    #endif
-
-    const char* bufPos = copyFileContent(nameOfInputFile);
-
-    if (!bufPos)
-        return ERROR_FILLING_HT;
-
-    hashFunc_t hashFunction = *hashTableFunc(hashTable);
-
-
-    while (*bufPos != '\0') {
-        skipSpaces(&bufPos);
-        if (*bufPos == '\0') break;
-
-        char wordBuf[MAX_WORD_LENGTH] = {0};
-        int wordLen = 0;
-        while (bufPos[wordLen] && !isspace(bufPos[wordLen]) && wordLen < MAX_WORD_LENGTH-1) {
-            wordBuf[wordLen] = bufPos[wordLen];
-            wordLen++;
-        }
-        wordBuf[wordLen] = '\0';
-        bufPos += wordLen;
-
-        uint64_t wordHash = hashFunction(wordBuf);
-        size_t index = wordHash % *hashTableArrSize(hashTable);
-        list_t* curList = *hashTableList(hashTable, index);
-
-        int wordNodeNum = findWordInList(curList, wordBuf, wordLen);
-
-        if (wordNodeNum == CAN_NOT_FIND_WORD) {
-            char* wordPtr = (char*)malloc(wordLen + 1);
-            memcpy(wordPtr, wordBuf, wordLen + 1);
-            *hashTableNumOfWords(hashTable) += 1;
-
-            if (insertAfter(curList, (size_t)*listTail(curList), wordPtr, wordLen,
-                *hashTableDumpStruct(hashTable)) < 0) {
-                printf("Error insert of the word \"%s\"!\n", wordPtr);
-                free(wordPtr);
-                break;
-            }
-        }
-        else *listNodeRepCounter(curList, wordNodeNum) += 1;
-
-        skipSpaces(&bufPos);
-    }
-
-    #ifdef DEBUG_MODE
-        *hashTableLoadFactor(hashTable) = (double)*hashTableNumOfWords(hashTable) / (double)*hashTableArrSize(hashTable);
-
-        if (hashTableVerifier(hashTable) != htNO_ERRORS)
-            hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
-    #endif
-
-    return 0;
-}
-
-int findWordsInHashTable (hashTable_t* hashTable, const char* wordsBuffer) {
-    DEBUG(assert(hashTable));
-    DEBUG(assert(wordsBuffer));
-
-    int numOfFoundWords = 0;
-
-    #ifdef DEBUG_MODE
-        if (hashTableVerifier(hashTable) != htNO_ERRORS)
-            hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
-    #endif
-
-    hashFunc_t hashFunction = *hashTableFunc(hashTable);
-
-    while (*wordsBuffer != '\0') {
-        skipSpaces(&wordsBuffer);
-        if (*wordsBuffer == '\0') break;
-
-        char curWord[MAX_WORD_LENGTH] = {};
-        int wordLen = 0;
-        while (wordsBuffer[wordLen] && !isspace(wordsBuffer[wordLen]) && wordLen < MAX_WORD_LENGTH-1) {
-            curWord[wordLen] = wordsBuffer[wordLen];
-            wordLen++;
-        }
-        curWord[wordLen] = '\0';
-        wordsBuffer += wordLen;
-
-        uint64_t wordHash = hashFunction(curWord);
-        size_t index = wordHash % *hashTableArrSize(hashTable);
-        list_t* curList = *hashTableList(hashTable, index);
-
-        int wordNodeNum = findWordInList(curList, curWord, wordLen);
-        if (wordNodeNum != CAN_NOT_FIND_WORD) numOfFoundWords++;
-    }
-
-    #ifdef DEBUG_MODE
-        if (hashTableVerifier(hashTable) != htNO_ERRORS)
-            hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
-    #endif
-
-    return numOfFoundWords;
-}
-
 void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {
     assert(hashTable);
     assert(outputFile);
@@ -441,4 +334,129 @@ void fprintfHashTableHistogram (hashTable_t* hashTable, FILE* outputFile) {
     }
 
     fprintf(outputFile, "</div>\n<br><br><br>\n");
+}
+
+
+
+int fillHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr) {
+    DEBUG(assert(hashTable);)
+    DEBUG(assert(wordArr);)
+
+    #ifdef DEBUG_MODE
+        if (hashTableVerifier(hashTable) != htNO_ERRORS)
+            hashTableDump(hashTable, "Verifier signal BEFORE filling the hashTable");
+    #endif
+
+    hashFunc_t hashFunction = *hashTableFunc(hashTable);
+
+
+    for (size_t numOfWord = 0; numOfWord < *structArrNumberOfWords(wordArr); numOfWord++) {
+
+        if (numOfWord + 1 < *structArrNumberOfWords(wordArr)) {
+                const char* nextWord = *structArrWord(wordArr, numOfWord + 1);
+                __asm__ volatile (
+                    ".intel_syntax noprefix\n"
+                    "prefetcht0 [%0]\n"
+                    ".att_syntax prefix\n"
+                    :
+                    : "r" (nextWord)
+                    : "memory"
+                );
+        }
+
+        uint64_t wordHash = hashFunction(*structArrWord(wordArr, numOfWord));
+        wordHash = wordHash << 32;
+
+        size_t index = 0;
+        uint64_t trash = 0;
+
+        __asm__ volatile (
+            ".intel_syntax noprefix\n"
+            "mul %3\n"
+            ".att_syntax prefix\n"
+            : "=d" (index), "=a" (trash)
+            : "a" (wordHash), "r" (*hashTableArrSize(hashTable))
+            : "cc"
+        );
+        list_t* curList = *hashTableList(hashTable, index);
+
+        int wordNodeNum = findWordInList_asm(curList, *structArrWord(wordArr, numOfWord),
+                                        wordHash);
+
+        if (wordNodeNum == CAN_NOT_FIND_WORD) {
+            *hashTableNumOfWords(hashTable) += 1;
+
+            if (insertAfter(curList, (size_t)*listTail(curList), *structArrWord(wordArr, numOfWord), *structArrWordLen(wordArr, numOfWord),
+                wordHash, *hashTableDumpStruct(hashTable)) < 0) {
+                printf("Error insert of the word \"%s\"!\n", *structArrWord(wordArr, numOfWord));
+                break;
+            }
+        }
+        else *listNodeRepCounter(curList, wordNodeNum) += 1;
+    }
+
+    #ifdef DEBUG_MODE
+        *hashTableLoadFactor(hashTable) = (double)*hashTableNumOfWords(hashTable) / (double)*hashTableArrSize(hashTable);
+
+        if (hashTableVerifier(hashTable) != htNO_ERRORS)
+            hashTableDump (hashTable, "Verifier signal AFTER filling the hashTable");
+    #endif
+
+    return 0;
+}
+
+int findWordInTheHashTable (hashTable_t* hashTable, const char* word) {
+    DEBUG(assert(hashTable);)
+    DEBUG(assert(word);)
+
+    hashFunc_t hashFunction = *hashTableFunc(hashTable);
+
+    uint64_t wordHash = hashFunction(word);
+    wordHash = wordHash << 32;
+
+    size_t index = 0;
+    uint64_t trash = 0;
+
+    __asm__ volatile (
+        ".intel_syntax noprefix\n"
+        "mul %3\n"
+        ".att_syntax prefix\n"
+        : "=d" (index), "=a" (trash)
+        : "a" (wordHash), "r" (*hashTableArrSize(hashTable))
+        : "cc"
+    );
+
+    list_t* curList = *hashTableList(hashTable, index);
+
+    int wordNodeNum = findWordInList_asm(curList, word, wordHash);
+
+    if (wordNodeNum == CAN_NOT_FIND_WORD)
+        return 0;
+    else return 1;
+}
+
+int testHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr, size_t numOfTests) {
+    int testResult = 0;
+
+    for (size_t curTest = 0; curTest < numOfTests; curTest++) {
+        for (size_t curWordNum = 0; curWordNum < *structArrNumberOfWords(wordArr); curWordNum++) {
+
+            if (curWordNum + 1 < *structArrNumberOfWords(wordArr)) {
+                const char* nextWord = *structArrWord(wordArr, curWordNum + 1);
+                __asm__ volatile (
+                    ".intel_syntax noprefix\n"
+                    "prefetcht0 [%0]\n"
+                    ".att_syntax prefix\n"
+                    :
+                    : "r" (nextWord)
+                    : "memory"
+                );
+            }
+
+            testResult = findWordInTheHashTable(hashTable, *structArrWord(wordArr, curWordNum));
+        }
+        __asm__ volatile("" : : "g" (testResult) : "memory");
+    }
+
+    return 0;
 }
