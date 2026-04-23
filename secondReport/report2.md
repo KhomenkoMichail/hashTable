@@ -3,17 +3,21 @@
 ## Описание (будет добавлено позже)
 
 ### Аппаратное обеспечение
-* **Процессор:** Intel® Core™ Ultra 9 285H
-* **Режим питания:** «Оптимальная производительность» (от сети).
+* **Среда выполнения:** удалённый сервер под управлением Linux (подключение по SSH).
+* **Процессор:** 11th Gen Intel® Core™ i5-11400H 2.70GHz.
+* **Режим питания:** «performance» (от сети).
+* **Изоляция ядра:** замеры проводились на физическом ядре №2, изолированном задач планировщика ОС.
+
+<img src="image-7.png" width="600" height="30" style="margin-left: 40px;">
 
 ### Программная среда
-* **Компилятор:** g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+* **Компилятор:** g++ 11.4.0
 * **Инструмент замера:** `hyperfine` (усреднение по 10 прогонам, 3 прогревочных цикла, в каждом прогоне 1000 тестов поиска по 579523 слов из англоязычной версии произведения Л.Н. Толстого "Война и мир").
 * **Используемый профиллировщик:** cachegrind 3.18.1
 
 ## 0. Первая версия программы, компиляция без флага -O3.
 
-#### Benchmark 1: version without O3 <br>
+#### Benchmark 1: ./build/programWithoutO3 <br>
   Time (mean ± σ):     55.892 s ±  0.077 s    [User: 55.886 s, System: 0.004 s] <br>
   Range (min … max):   55.777 s … 56.038 s    10 runs <br>
 
@@ -21,11 +25,11 @@
 
 ## 1. Первая версия программы, компиляция с флагом -O3.
 
-#### Benchmark 1: O3 first version
-  Time (mean ± σ):     53.679 s ±  0.136 s    [User: 53.675 s, System: 0.004 s]
-  Range (min … max):   53.432 s … 53.871 s    10 runs
+#### Benchmark 1: ./build/programWithO3FirstVersion <br>
+  Time (mean ± σ):     53.679 s ±  0.136 s    [User: 53.675 s, System: 0.004 s] <br>
+  Range (min … max):   53.432 s … 53.871 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">9,24%</span>**
+**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">3.96%</span>**
 
 
 #### Cachegrind анализ
@@ -72,11 +76,11 @@ uint64_t crc32Hash(const char* str) {
 }
 ```
 
-#### Benchmark 1: Benchmark 1: O3 second version <br>
+#### Benchmark 1: ./build/programWithO3SecondVersion <br>
   Time (mean ± σ):     19.656 s ±  0.057 s    [User: 19.652 s, System: 0.004 s] <br>
   Range (min … max):   19.586 s … 19.763 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">62.40%</span>**
+**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">63.38%</span>**
 
 #### Cachegrind анализ
 
@@ -162,11 +166,12 @@ findWordInList_asm:
                         ret
 ```
 
-#### Benchmark 1: O3 third version
-  Time (mean ± σ):     19.720 s ±  0.080 s    [User: 19.715 s, System: 0.004 s]
-  Range (min … max):   19.567 s … 19.829 s    10 runs
+#### Benchmark 1: ./build/programWithO3ThirdVersion <br>
+  Time (mean ± σ):     19.720 s ±  0.080 s    [User: 19.715 s, System: 0.004 s] <br>
+  Range (min … max):   19.567 s … 19.829 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">2,16%</span>**
+**<u>Программа замедлилась на:</u> <span style="color: rgb(225, 18, 18);">0.33%</span>** <br>
+В связи с этим было принято решение переработать функцию сравнения строк.
 #### Cachegrind анализ
 
 <img src="image-3.png" width="800" height="500">
@@ -227,11 +232,11 @@ After:
                         ret
 ```
 
-#### Benchmark 1: O3 fourth version <br>
+#### Benchmark 1: ./build/programWithO3FourthVersion <br>
   Time (mean ± σ):     16.983 s ±  0.028 s    [User: 16.978 s, System: 0.004 s] <br>
   Range (min … max):   16.932 s … 17.024 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">9,55%</span>**
+**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">13.88%</span>**
 
 #### Cachegrind анализ
 
@@ -257,11 +262,11 @@ After:
     );
 ```
 
-#### Benchmark 1: Benchmark 1: O3 fifth version <br>
+#### Benchmark 1: ./build/programWithO3FifthVersion <br>
   Time (mean ± σ):     16.376 s ±  0.026 s    [User: 16.371 s, System: 0.004 s] <br>
   Range (min … max):   16.347 s … 16.416 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">2,88%</span>**
+**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">3.57%</span>**
 
 #### Cachegrind анализ
 
@@ -283,10 +288,10 @@ After:
 ```
 
 #### Benchmark 1: ./build/programWithO3SixthVersion <br>
-  Time (mean ± σ):     13.693 s ±  0.086 s    [User: 13.688 s, System: 0.004 s] <br>
-  Range (min … max):   13.577 s … 13.890 s    10 runs <br>
+  Time (mean ± σ):     15.112 s ±  0.048 s    [User: 15.108 s, System: 0.004 s] <br>
+  Range (min … max):   15.062 s … 15.192 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">10,01%</span>**
+**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">7.72%</span>**
 
 
 #### Cachegrind анализ
@@ -316,11 +321,11 @@ After:
     return isFound;
 ```
 
-#### Benchmark 1: Benchmark 1: O3 sixth version <br>
+#### Benchmark 1: ./build/programWithO3SeventhVersion <br>
   Time (mean ± σ):     15.063 s ±  0.042 s    [User: 15.059 s, System: 0.004 s] <br>
   Range (min … max):   15.008 s … 15.128 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(255, 12, 12);">0.72%</span>**<br>
+**Увеличение скорости работы программы: <span style="color: rgb(255, 12, 12);">0.32%</span>**<br>
 <u>Оптимизация была удалена ввиду незначительного прироста к скорости программы.</u>
 
 ## *Компиляция с PGO последней версии программы.
@@ -329,7 +334,50 @@ After:
   Time (mean ± σ):     12.594 s ±  0.031 s    [User: 12.585 s, System: 0.008 s] <br>
   Range (min … max):   12.541 s … 12.637 s    10 runs <br>
 
-**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">7,36%</span>**
+**Увеличение скорости работы программы: <span style="color: rgb(18, 225, 18);">16.66%</span>**
+
+  С помощью дизасемблера objdump были обнаружены различия между функциями crc32Hash программы с ручной оптимизацией и PGO:
+
+programWithO3SixthVersion:
+```
+00000000000014d0 <crc32Hash(char const*)>:
+    14d0:	f3 0f 1e fa          	endbr64
+    14d4:	0f b6 17             	movzx  edx,BYTE PTR [rdi]
+    14d7:	b8 ff ff ff ff       	mov    eax,0xffffffff
+    14dc:	84 d2                	test   dl,dl
+    14de:	74 1a                	je     14fa <crc32Hash(char const*)+0x2a>
+    14e0:	b8 ff ff ff ff       	mov    eax,0xffffffff
+    14e5:	0f 1f 00             	nop    DWORD PTR [rax]
+    14e8:	48 83 c7 01          	add    rdi,0x1
+    14ec:	f2 0f 38 f0 c2       	crc32  eax,dl
+    14f1:	0f b6 17             	movzx  edx,BYTE PTR [rdi]
+    14f4:	84 d2                	test   dl,dl
+    14f6:	75 f0                	jne    14e8 <crc32Hash(char const*)+0x18>
+    14f8:	89 c0                	mov    eax,eax
+    14fa:	c3                   	ret
+    14fb:	0f 1f 44 00 00       	nop    DWORD PTR [rax+rax*1+0x0]
+```
+
+programPGO:
+```
+0000000000001120 <crc32Hash(char const*)>:
+    1120:	f3 0f 1e fa          	endbr64
+    1124:	83 c8 ff             	or     eax,0xffffffff
+    1127:	eb 09                	jmp    1132 <crc32Hash(char const*)+0x12>
+    1129:	f2 0f 38 f0 c2       	crc32  eax,dl
+    112e:	48 83 c7 01          	add    rdi,0x1
+    1132:	0f b6 17             	movzx  edx,BYTE PTR [rdi]
+    1135:	84 d2                	test   dl,dl
+    1137:	75 f0                	jne    1129 <crc32Hash(char const*)+0x9>
+    1139:	89 c0                	mov    eax,eax
+    113b:	c3                   	ret
+    113c:	0f 1f 40 00          	nop    DWORD PTR [rax+0x0]
+```
+
+Различия:
+1. Отсутствие в PGO версии на строку, начинающуюся с '\0' (один условный jump вместо двух в версии programWithO3SixthVersion)
+2. Более быстрая or     eax,0xffffffff вместо два раза вызывающихся mov    eax,0xffffffff
+
 
 <br><br>
-**Итого:** C помомщью ручных оптимизаций получилось добиться ускорения в <span style="color: rgb(18, 225, 18);">3,44</span> раза. (programWithO3SixthVersion.exe в сравнении с programWithO3FirstVersion.exe)
+**Итого:** C помомщью ручных оптимизаций получилось добиться ускорения в <span style="color: rgb(18, 225, 18);">3,54</span> раза. (programWithO3SixthVersion.exe в сравнении с programWithO3FirstVersion.exe)
