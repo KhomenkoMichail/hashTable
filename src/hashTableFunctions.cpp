@@ -368,16 +368,17 @@ int fillHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr) {
         wordHash = wordHash << 32;
 
         size_t index = 0;
-        uint64_t trash = 0;
+        uint64_t remainder = 0;
 
         __asm__ volatile (
             ".intel_syntax noprefix\n"
             "mul %3\n"
             ".att_syntax prefix\n"
-            : "=d" (index), "=a" (trash)
+            : "=d" (index), "=a" (remainder)
             : "a" (wordHash), "r" (*hashTableArrSize(hashTable))
             : "cc"
         );
+
         list_t* curList = *hashTableList(hashTable, index);
 
         int wordNodeNum = findWordInList_asm(curList, *structArrWord(wordArr, numOfWord),
@@ -415,13 +416,13 @@ int findWordInTheHashTable (hashTable_t* hashTable, const char* word) {
     wordHash = wordHash << 32;
 
     size_t index = 0;
-    uint64_t trash = 0;
+    uint64_t remainder = 0;
 
     __asm__ volatile (
         ".intel_syntax noprefix\n"
         "mul %3\n"
         ".att_syntax prefix\n"
-        : "=d" (index), "=a" (trash)
+        : "=d" (index), "=a" (remainder)
         : "a" (wordHash), "r" (*hashTableArrSize(hashTable))
         : "cc"
     );
@@ -460,3 +461,19 @@ int testHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr, size_t numO
 
     return 0;
 }
+
+double calculateHashTableDispersion(hashTable_t* hashTable) {
+    DEBUG(assert(hashTable);)
+
+    double loadFactor = *hashTableLoadFactor(hashTable);
+
+    double squaredDiffSum = 0.0;
+    for (size_t curListNum = 0; curListNum < *hashTableArrSize(hashTable); curListNum++) {
+        list_t* curList = *hashTableList(hashTable, curListNum);
+        double diff = (double)(*listSize(curList));
+        squaredDiffSum += diff * diff;
+    }
+
+    return squaredDiffSum / *hashTableArrSize(hashTable);
+}
+

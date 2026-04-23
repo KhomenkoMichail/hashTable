@@ -3,7 +3,7 @@ CXX = g++
 AS = nasm
 ASFLAGS = -f elf64 -g -F dwarf
 
-CXXFLAGS = -fno-omit-frame-pointer -O3 -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equal -Winline \
+CXXFLAGS = -O3 -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equal -Winline \
            -Wunreachable-code -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum \
            -Wswitch-default -Weffc++ -Wmain -Wextra -Wall -g -pipe -fexceptions -Wcast-qual \
            -Wconversion -Wctor-dtor-privacy -Wempty-body -Wformat-security -Wformat=2 \
@@ -15,7 +15,7 @@ CXXFLAGS = -fno-omit-frame-pointer -O3 -Wshadow -Winit-self -Wredundant-decls -W
 SRC_DIR = src
 BUILD_DIR = build
 
-TARGET = $(BUILD_DIR)/programFinalVersion
+TARGET = $(BUILD_DIR)/program
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 ASRCS = $(wildcard $(SRC_DIR)/*.asm)

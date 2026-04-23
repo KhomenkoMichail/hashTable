@@ -39,4 +39,6 @@ int findWordInTheHashTable (hashTable_t* hashTable, const char* word);
 
 int testHashTable (hashTable_t* hashTable, wordArrStruct_t* wordArr, size_t numOfTests);
 
+double calculateHashTableDispersion(hashTable_t* hashTable);
+
 #endif

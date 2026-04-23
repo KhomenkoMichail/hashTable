@@ -1,3 +1,4 @@
 WSL2-Linux-Kernel/
 myPrintf.asm
 *.sh
+cachegrind/

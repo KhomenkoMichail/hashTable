@@ -9,7 +9,7 @@
 ### Программная среда
 * **WSL:** 6.6.87.2-microsoft-standard-WSL2
 * **Компилятор:** g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
-* **Инструмент замера:** `hyperfine` (усреднение по 10 прогонам, 3 прогревочных цикла, в каждом прогоне 1000 тестов поиска по 579523 слов из англоязычной версии произведения Л.Н. Толстого "Война и мир").
+* **Инструмент замера:** `hyperfine` (усреднение по 10 прогонам, 3 прогревочных цикла, в каждом прогоне 1000 тестов поиска по 579523 слов из англоязычной версии произведения Л. Н. Толстого "Война и мир").
 * **Мониторинг температуры ядер и троттлинга процессора:** AIDA64
 * **Используемый профиллировщик:** cachegrind 3.18.1
 
@@ -52,11 +52,10 @@ uint64_t crc32Hash(const char* str) {
         crc ^= (uint8_t)(*str);
 
         for (int i = 0; i < 8; i++) {
-            if (crc & 1) {
+            if (crc & 1)
                 crc = (crc >> 1) ^ 0xEDB88320;
-            } else {
+            else
                 crc >>= 1;
-            }
         }
         str++;
     }
@@ -263,13 +262,13 @@ size_t index = wordHash % *hashTableArrSize(hashTable);
 After:
 ```
     size_t index = 0;
-    uint64_t trash = 0;
+    uint64_t remainder = 0;
 
     __asm__ volatile (
         ".intel_syntax noprefix\n"
         "mul %3\n"
         ".att_syntax prefix\n"
-        : "=d" (index), "=a" (trash)
+        : "=d" (index), "=a" (remainder)
         : "a" (wordHash), "r" (*hashTableArrSize(hashTable))
         : "cc"
     );
@@ -358,7 +357,6 @@ After:
 
 #### AIDA64 Temperature and throttling graph
 <img src="aidaGraphPGO.png" width="600" height="200">
-
 
 
 <br><br>
